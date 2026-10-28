@@ -1,5 +1,5 @@
 node_modules/
-android/
+/android/
 *.keystore
 *.jks
 signing-key-info.txt
