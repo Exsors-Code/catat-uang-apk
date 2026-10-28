@@ -1,0 +1,11 @@
+{
+  "appId": "app.catatuang.mobile",
+  "appName": "CatatUang",
+  "webDir": "www",
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_catatuang",
+      "iconColor": "#0F766E"
+    }
+  }
+}
