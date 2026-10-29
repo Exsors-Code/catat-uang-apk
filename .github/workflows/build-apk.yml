@@ -1,4 +1,4 @@
-name: Build APK
+﻿name: Build APK
 on:
   push:
     branches: [main]
@@ -6,19 +6,41 @@ on:
 permissions:
   contents: write
 jobs:
-  apk:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+      - name: Pasang dependensi
+        run: npm ci
+      - name: Jalankan tes otomatis
+        run: npm run test
+  apk:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
       - name: Pasang dependensi
-        run: npm install
+        run: npm ci
+      - name: Baca versi
+        id: ver
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION}.${{ github.run_number }}" >> $GITHUB_OUTPUT
+          echo "vname=${VERSION}" >> $GITHUB_OUTPUT
+          echo "vcode=${{ github.run_number }}" >> $GITHUB_OUTPUT
       - name: Buat proyek Android
         run: npx cap add android
       - name: Salin ikon, kode native, dan konfigurasi izin
@@ -28,6 +50,10 @@ jobs:
           mkdir -p android/app/src/main/java/app/catatuang/mobile
           cp -f resources/android/*.java android/app/src/main/java/app/catatuang/mobile/
           node scripts/patch-android.js
+      - name: Suntikkan versi ke Gradle
+        run: |
+          sed -i "s/versionCode .*/versionCode ${{ steps.ver.outputs.vcode }}/" android/app/build.gradle
+          sed -i "s/versionName \".*\"/versionName \"${{ steps.ver.outputs.vname }}\"/" android/app/build.gradle
       - name: Sinkron aset web
         run: npx cap sync android
       - name: Bangun APK
@@ -54,7 +80,7 @@ jobs:
           path: CatatUang.apk
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: apk-terbaru
-          name: CatatUang APK (terbaru)
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: CatatUang APK v${{ steps.ver.outputs.vname }} (${{ steps.ver.outputs.vcode }})
           body: Unduh CatatUang.apk, lalu pasang di Android.
           files: CatatUang.apk

@@ -1,4 +1,4 @@
-package app.catatuang.mobile;
+﻿package app.catatuang.mobile;
 
 import android.content.Context;
 import android.content.Intent;
@@ -116,6 +116,28 @@ public class NotificationPlugin extends Plugin {
             call.resolve();
         } catch (Exception e) {
             call.reject("Gagal menghapus notifikasi: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void markSaved(PluginCall call) {
+        String fp = call.getString("fp");
+        try {
+            NotificationService.markSaved(getContext(), fp);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Gagal menandai: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void markIgnored(PluginCall call) {
+        String fp = call.getString("fp");
+        try {
+            NotificationService.markIgnored(getContext(), fp);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Gagal menandai: " + e.getMessage());
         }
     }
 }

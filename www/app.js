@@ -1,78 +1,67 @@
+﻿// -------------------------------------------------------------
+// SISTEM PARSER NOTIFIKASI BANK & E-WALLET INDONESIA
 // CatatUang - Aplikasi Keuangan Android Mandiri & Offline
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const NATIVE = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
-
-const CATS = {
-  Makan: /makan|resto|cafe|kopi|warung|bakso|nasi|ayam|mie|bakery|coffee|food|minum|geprek|pizza|burger|snack|jajan/i,
-  Transport: /bensin|pertamina|shell|parkir|tol|grab|gojek|ojek|kereta|transport|kai|mrt|transjakarta/i,
-  Belanja: /indomaret|alfamart|supermarket|mart|toko|market|shop|hypermart|carrefour|shopee|tokopedia|lazada|tiktok/i,
-  Tagihan: /listrik|pln|pulsa|internet|wifi|pdam|telkom|token|tagihan|bpjs|asuransi/i,
-  Kesehatan: /apotek|klinik|dokter|rumah sakit|obat|kimia farma|halodoc|alodokter/i,
-  Hiburan: /bioskop|cinema|xxi|game|netflix|spotify|wisata|steam|playstation/i,
-  Lainnya: /.*/
-};
-
-const WALLETS = ['Tunai', 'BCA', 'Mandiri', 'BRI', 'SeaBank', 'Bank Jago', 'GoPay', 'OVO', 'DANA', 'ShopeePay'];
+const GITHUB_DEFAULT_REPO = 'Exsors-Code/catat-uang-apk';
 
 const rp = n => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
-const today = () => {
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const pad2 = n => String(n).padStart(2, '0');
+const dateKey = d => {
+  const dt = d instanceof Date ? d : new Date(d);
+  return dt.getFullYear() + '-' + pad2(dt.getMonth() + 1) + '-' + pad2(dt.getDate());
 };
-const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const today = () => dateKey(new Date());
+const esc = s => String(s || '').replace(/[&<>\"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));
+const normKey = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+const dedupeKey = t => `${t.type || 'out'}|${t.d || ''}|${t.amt || 0}|${normKey(t.wallet)}|${normKey(t.note)}|${normKey(t.cat || '')}`;
 
 // State utama aplikasi
 let S = {
   tx: [],          // Transaksi pengeluaran
   inc: [],         // Transaksi pemasukan
   detected: [],    // Notifikasi transaksi bank/e-wallet yang terdeteksi
+  transfers: [],   // Transfer antar-dompet (bukan pemasukan/pengeluaran)
+  goals: [],       // Target tabungan
+  wallets: [],     // Dompet tambahan (cash/kas/bank/e-wallet user)
   set: {
     budget: 0,
+    budgets: {},   // Anggaran per kategori: { Makan: 0, ... }
     remindMidday: true,
     timeMidday: '11:45',
     remindNight: true,
     timeNight: '21:00',
     autoSave: false,
-    githubRepo: ''
-  }
+    githubRepo: '',
+    notifOnboarded: false,
+    lastBackup: null
+  },
+  meta: { pinHash: null }
 };
 
 let tab = 'home';
-let draft = { img: null, amt: '', note: '', cat: 'Makan', wallet: 'Tunai', d: today() };
+let draft = { kind: 'out', img: null, amt: '', note: '', cat: 'Makan', wallet: 'Tunai', d: today(), editId: null };
 let ocrMsg = '';
 let viewMonth = today().slice(0, 7);
 let notifListenerGranted = false;
 let updateInfo = null;
+let locked = false;
 
 const save = async () => {
   try {
-    await DB.put('state', S);
+    await DB.put('meta', 'state', S.meta || {});
+    await DB.put('tx', 'state', S.tx);
+    await DB.put('inc', 'state', S.inc);
+    await DB.put('detected', 'state', S.detected);
+    await DB.put('transfers', 'state', S.transfers);
+    await DB.put('goals', 'state', S.goals);
+    await DB.put('photos', 'state', S.tx.filter(t => t.img).reduce((m, t) => (m[t.id] = t.img, m), {}));
+    if (S.set) S.set.lastBackup = S.set.lastBackup || null;
     scheduleAllReminders();
   } catch (e) {
     alert('Gagal menyimpan ke database. Ekspor cadangan secara berkala.');
   }
 };
-
-function sumDay(d) {
-  const l = S.tx.filter(t => t.d === d);
-  const by = {};
-  l.forEach(t => by[t.cat] = (by[t.cat] || 0) + t.amt);
-  return { total: l.reduce((a, t) => a + t.amt, 0), by, n: l.length };
-}
-
-function summaryText(isMidday = false) {
-  const s = sumDay(today());
-  if (isMidday) {
-    if (!s.n) return 'Belum ada pengeluaran tercatat hari ini. Sudah makan siang? Catat sekarang yuk!';
-    return `Pengingat Siang: Sudah keluar ${rp(s.total)} (${s.n} transaksi). Jangan lupa catat makan siang & jajanmu!`;
-  }
-  if (!s.n) return 'Hari ini belum ada pengeluaran tercatat.';
-  return `Ringkasan Malam: Total hari ini ${rp(s.total)} (${s.n} transaksi): ` +
-    Object.entries(s.by).sort((a, b) => b[1] - a[1]).map(([c, v]) => c + ' ' + rp(v)).join(', ') + '.';
-}
-
-// -------------------------------------------------------------
-// SISTEM PARSER NOTIFIKASI BANK & E-WALLET INDONESIA
 // -------------------------------------------------------------
 function parsePaymentNotification(item) {
   const pkg = (item.pkg || '').toLowerCase();
@@ -96,7 +85,7 @@ function parsePaymentNotification(item) {
   else if (pkg.includes('jenius') || /jenius/i.test(full)) wallet = 'Jenius';
 
   // 2. Deteksi Arah Transaksi: Pengeluaran (out) vs Pemasukan (in)
-  const isIncome = /transfer masuk|diterima|menerima|dikirim ke kamu|top up berhasil|topup berhasil|uang masuk/i.test(full);
+  const isIncome = /transfer masuk|diterima|menerima|dikirim ke kamu|uang masuk/i.test(full);
   const type = isIncome ? 'in' : 'out';
 
   // 3. Ekstraksi Nominal (Rp)
@@ -133,7 +122,8 @@ function parsePaymentNotification(item) {
     }
   }
 
-  const timeStr = item.time ? new Date(item.time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
+  const notifDate = item.time ? new Date(item.time) : new Date();
+  const timeStr = notifDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
   return {
     id: item.id || Date.now() + '_' + Math.random().toString(36).substr(2, 4),
@@ -145,7 +135,7 @@ function parsePaymentNotification(item) {
     cat,
     time: timeStr,
     timestamp: item.time || Date.now(),
-    d: today(),
+    d: item.time ? dateKey(item.time) : dateKey(notifDate),
     raw: full
   };
 }
@@ -156,15 +146,16 @@ function processCapturedNotification(rawItem) {
   if (!parsed.amt || parsed.amt < 100) return; // Abaikan jika nominal tidak valid
 
   // Cek duplikasi agar tidak tercatat ganda
-  const exists = S.detected.some(d => d.id === parsed.id || (d.amt === parsed.amt && d.raw === parsed.raw));
-  if (exists) return;
+    const existsDetected = S.detected.some(d => d.id === parsed.id || (d.amt === parsed.amt && d.raw === parsed.raw));
+  const existsSaved = [...S.tx, ...S.inc].some(t => (t.amt === parsed.amt) && (t.note || '').toLowerCase() === (parsed.note || '').toLowerCase() && (t.d === parsed.d));
+  if (existsDetected || existsSaved) return;
 
   if (S.set.autoSave) {
     // Mode Auto-Save: langsung simpan tanpa konfirmasi
     if (parsed.type === 'in') {
-      S.inc.push({ id: Date.now(), m: today().slice(0, 7), amt: parsed.amt, note: parsed.note, wallet: parsed.wallet });
+      S.inc.push({ id: Date.now(), m: (parsed.d || today()).slice(0, 7), amt: parsed.amt, note: parsed.note, wallet: parsed.wallet });
     } else {
-      S.tx.push({ id: Date.now(), d: today(), amt: parsed.amt, cat: parsed.cat, note: parsed.note, wallet: parsed.wallet, img: null, auto: true });
+      S.tx.push({ id: Date.now(), d: parsed.d || today(), amt: parsed.amt, cat: parsed.cat, note: parsed.note, wallet: parsed.wallet, img: null, auto: true });
     }
     save();
   } else {
@@ -241,7 +232,7 @@ async function scheduleAllReminders() {
         if (at <= now) continue;
         list.push({
           id: i + 1,
-          title: 'CatatUang: Pengingat Siang ☀️',
+          title: 'CatatUang: Pengingat Siang Ã¢Ëœâ‚¬Ã¯Â¸Â',
           body: at.toDateString() === now.toDateString() ? summaryText(true) : 'Sudah makan siang? Jangan lupa catat pengeluaranmu!',
           schedule: { at, allowWhileIdle: true },
           smallIcon: 'ic_stat_catatuang',
@@ -258,7 +249,7 @@ async function scheduleAllReminders() {
         if (at <= now) continue;
         list.push({
           id: i + 15,
-          title: 'CatatUang: Ringkasan Malam 🌙',
+          title: 'CatatUang: Ringkasan Malam Ã°Å¸Å’â„¢',
           body: at.toDateString() === now.toDateString() ? summaryText(false) : 'Buka CatatUang untuk evaluasi keuangan harianmu.',
           schedule: { at, allowWhileIdle: true },
           smallIcon: 'ic_stat_catatuang',
@@ -279,7 +270,7 @@ async function scheduleAllReminders() {
 // CEK PEMBARUAN GITHUB (IN-APP UPDATER)
 // -------------------------------------------------------------
 async function checkGithubUpdate(manual = false) {
-  const repo = S.set.githubRepo || 'hulio/catatuang-android';
+  const repo = S.set.githubRepo || 'Exsors-Code/catat-uang-apk';
   try {
     const res = await fetch(`https://api.github.com/repos/${repo}/releases/latest`);
     if (!res.ok) throw new Error('Repo belum dibuat atau belum ada rilis.');
@@ -287,7 +278,7 @@ async function checkGithubUpdate(manual = false) {
     const latestTag = (data.tag_name || '').replace(/^v/, '');
     const apkAsset = (data.assets || []).find(a => a.name.endsWith('.apk'));
 
-    if (latestTag && latestTag !== APP_VERSION && apkAsset) {
+    var cmpV=function(a,b){a=(a||'').split('.');b=(b||'').split('.');for(var i=0;i<Math.max(a.length,b.length);i++){var ai=parseInt(a[i])||0,bi=parseInt(b[i])||0;if(ai!==bi)return ai-bi;}return 0;};if(latestTag&&cmpV(latestTag,APP_VERSION)>0&&apkAsset){
       updateInfo = {
         version: data.tag_name,
         name: data.name || data.tag_name,
@@ -349,10 +340,10 @@ function home() {
     <div class="banner">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
-          <b>🚀 Pembaruan Tersedia (${esc(updateInfo.version)})</b>
+          <b>Ã°Å¸Å¡â‚¬ Pembaruan Tersedia (${esc(updateInfo.version)})</b>
           <div style="font-size:12px;opacity:0.9">${esc(updateInfo.name)}</div>
         </div>
-        <a href="${updateInfo.url}" class="pill" style="background:#fff;color:var(--acc);text-decoration:none;font-weight:700">Unduh APK</a>
+        <button class="pill" style="background:#fff;color:var(--acc);font-weight:700" onclick="openUpdateLink('${updateInfo.url}')">Unduh APK</button>
       </div>
     </div>` : '';
 
@@ -360,7 +351,7 @@ function home() {
     <div class="card" style="border:1px solid rgba(var(--acc-rgb),0.5);background:rgba(var(--acc-rgb),0.07);cursor:pointer" onclick="go('detect')">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:24px">🔔</span>
+          <span style="font-size:24px">Ã°Å¸â€â€</span>
           <div>
             <b>${S.detected.length} Transaksi Terdeteksi</b>
             <div class="mute">Dari notifikasi bank & e-wallet. Ketuk untuk simpan.</div>
@@ -383,7 +374,7 @@ function home() {
     ${detectedBanner}
 
     ${midday ? `<div class="card" style="background:var(--bg-card-subtle);border-left:4px solid var(--acc)">
-      <div style="font-size:13px;font-weight:600;color:var(--acc)">☀️ PENGINGAT SIANG</div>
+      <div style="font-size:13px;font-weight:600;color:var(--acc)">Ã¢Ëœâ‚¬Ã¯Â¸Â PENGINGAT SIANG</div>
       <div style="font-size:13.5px;margin-top:2px">${summaryText(true)}</div>
     </div>` : ''}
 
@@ -405,7 +396,7 @@ function home() {
     <div class="card">
       ${l.length ? l.map(txRow).join('') : `
         <div style="text-align:center;padding:24px 12px">
-          <div style="font-size:36px;margin-bottom:8px">📝</div>
+          <div style="font-size:36px;margin-bottom:8px">Ã°Å¸â€œÂ</div>
           <b>Belum ada catatan hari ini</b>
           <div class="mute" style="margin-top:4px">Tap <b>+ Catat</b> untuk foto struk atau mencatat manual.</div>
         </div>
@@ -419,8 +410,8 @@ function home() {
 // -------------------------------------------------------------
 function detect() {
   const permBadge = notifListenerGranted
-    ? `<span class="pill pill-inn">● Akses Notifikasi Aktif</span>`
-    : `<span class="pill pill-warn">● Akses Notifikasi Belum Aktif</span>`;
+    ? `<span class="pill pill-inn">Ã¢â€”Â Akses Notifikasi Aktif</span>`
+    : `<span class="pill pill-warn">Ã¢â€”Â Akses Notifikasi Belum Aktif</span>`;
 
   return `
     <h1>Deteksi Transaksi</h1>
@@ -434,10 +425,10 @@ function detect() {
       <p class="mute" style="margin:4px 0 12px">
         Agar CatatUang bisa mendeteksi otomatis saat kamu membayar QRIS atau transfer, izinkan "Akses Notifikasi" di pengaturan Android.
       </p>
-      <button class="b alt" onclick="openNotifListenerSettings()">⚙️ Buka Pengaturan Izin Android</button>
+      <button class="b alt" onclick="openNotifListenerSettings()">Ã¢Å¡â„¢Ã¯Â¸Â Buka Pengaturan Izin Android</button>
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="b sm alt" style="flex:1" onclick="refreshDetected()">Periksa Notifikasi Baru</button>
-        <button class="b sm alt" style="flex:1" onclick="testSimulateNotif()">⚡ Simulasi Tes</button>
+        <button class="b sm alt" style="flex:1" onclick="testSimulateNotif()">Ã¢Å¡Â¡ Simulasi Tes</button>
       </div>
     </div>
 
@@ -464,13 +455,13 @@ function detect() {
             "${esc(item.raw)}"
           </div>
           <div style="display:flex;gap:8px;margin-top:10px">
-            <button class="b sm" style="flex:1" onclick="confirmDetected('${item.id}')">✓ Simpan</button>
-            <button class="b sm alt" style="flex:1" onclick="dismissDetected('${item.id}')">✕ Abaikan</button>
+            <button class="b sm" style="flex:1" onclick="confirmDetected('${item.id}')">Ã¢Å“â€œ Simpan</button>
+            <button class="b sm alt" style="flex:1" onclick="dismissDetected('${item.id}')">Ã¢Å“â€¢ Abaikan</button>
           </div>
         </div>
       `).join('') : `
         <div style="text-align:center;padding:24px 12px">
-          <div style="font-size:36px;margin-bottom:8px">🔔</div>
+          <div style="font-size:36px;margin-bottom:8px">Ã°Å¸â€â€</div>
           <b>Belum ada notifikasi baru</b>
           <div class="mute" style="margin-top:4px">Begitu kamu belanja atau transfer lewat e-wallet/bank, transaksinya akan otomatis muncul di sini.</div>
         </div>
@@ -539,7 +530,7 @@ function add() {
     <p class="mute">Foto struk untuk membaca otomatis atau ketik nominalnya.</p>
 
     <label class="scan" for="f" onclick="pickPhoto(event)">
-      <div style="font-size:28px;margin-bottom:4px">📷</div>
+      <div style="font-size:28px;margin-bottom:4px">Ã°Å¸â€œÂ·</div>
       <b>Foto Struk Belanja (Kamera / Galeri)</b>
       <div class="mute">Didukung oleh OCR offline lokal</div>
     </label>
@@ -572,7 +563,7 @@ function add() {
       <label>Tanggal</label>
       <input id="d" type="date" value="${draft.d || today()}" onchange="draft.d=this.value">
 
-      <button class="b" onclick="addTx()">${draft.editId ? 'Simpan Perubahan' : '✓ Simpan Pengeluaran'}</button>
+      <button class="b" onclick="addTx()">${draft.editId ? 'Simpan Perubahan' : 'Ã¢Å“â€œ Simpan Pengeluaran'}</button>
       ${draft.editId ? `<button class="b alt" onclick="cancelEdit()">Batal</button>` : ''}
     </div>
   `;
@@ -604,7 +595,7 @@ function txRow(t) {
     <div class="row">
       ${t.img ? `<img src="${t.img}" alt="Struk">` : `
         <div class="row-icon">
-          ${t.cat === 'Makan' ? '🍔' : t.cat === 'Transport' ? '🛵' : t.cat === 'Belanja' ? '🛒' : t.cat === 'Tagihan' ? '⚡' : t.cat === 'Kesehatan' ? '💊' : t.cat === 'Hiburan' ? '🎬' : '💳'}
+          ${t.cat === 'Makan' ? 'Ã°Å¸Ââ€' : t.cat === 'Transport' ? 'Ã°Å¸â€ºÂµ' : t.cat === 'Belanja' ? 'Ã°Å¸â€ºâ€™' : t.cat === 'Tagihan' ? 'Ã¢Å¡Â¡' : t.cat === 'Kesehatan' ? 'Ã°Å¸â€™Å ' : t.cat === 'Hiburan' ? 'Ã°Å¸Å½Â¬' : 'Ã°Å¸â€™Â³'}
         </div>
       `}
       <div class="grow" onclick="edit(${t.id})" style="cursor:pointer">
@@ -612,13 +603,13 @@ function txRow(t) {
         <div class="sub">
           <span class="pill pill-wallet" style="padding:1px 6px;font-size:10.5px">${esc(t.wallet || 'Tunai')}</span>
           <span>${t.cat}</span>
-          ${t.d !== today() ? `<span>· ${t.d}</span>` : ''}
+          ${t.d !== today() ? `<span>Ã‚Â· ${t.d}</span>` : ''}
         </div>
       </div>
       <div style="text-align:right">
         <b class="out">${rp(t.amt)}</b>
       </div>
-      <button class="x" onclick="del(${t.id})" aria-label="Hapus">×</button>
+      <button class="x" onclick="del(${t.id})" aria-label="Hapus">Ãƒâ€”</button>
     </div>
   `;
 }
@@ -840,7 +831,7 @@ function month() {
             <span class="mute">${i.wallet || 'Tunai'}</span>
           </div>
           <b class="inn">${rp(i.amt)}</b>
-          <button class="x" onclick="delInc(${i.id})">×</button>
+          <button class="x" onclick="delInc(${i.id})">Ãƒâ€”</button>
         </div>
       `).join('')}
 
@@ -892,7 +883,7 @@ function set() {
     <div class="card">
       <div style="margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <b>☀️ Pengingat Siang (Jam 11 / 12)</b>
+          <b>Ã¢Ëœâ‚¬Ã¯Â¸Â Pengingat Siang (Jam 11 / 12)</b>
           <input type="checkbox" style="width:auto;margin:0" ${S.set.remindMidday ? 'checked' : ''} onchange="S.set.remindMidday=this.checked;save()">
         </div>
         <p class="mute" style="margin:4px 0 8px">Mengingatkan total pengeluaran sampai siang dan mencatat makan siang.</p>
@@ -903,7 +894,7 @@ function set() {
 
       <div>
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <b>🌙 Ringkasan Malam (Jam 21:00)</b>
+          <b>Ã°Å¸Å’â„¢ Ringkasan Malam (Jam 21:00)</b>
           <input type="checkbox" style="width:auto;margin:0" ${S.set.remindNight ? 'checked' : ''} onchange="S.set.remindNight=this.checked;save()">
         </div>
         <p class="mute" style="margin:4px 0 8px">Rekapitulasi total pengeluaran seharian untuk evaluasi malam.</p>
@@ -949,7 +940,7 @@ function set() {
     </div>
 
     <p class="mute" style="text-align:center;margin-top:20px">
-      CatatUang v${APP_VERSION} · 100% Offline & Menjaga Privasi Data Finansialmu.<br>
+      CatatUang v${APP_VERSION} Ã‚Â· 100% Offline & Menjaga Privasi Data Finansialmu.<br>
       <a href="privacy.html" style="color:var(--acc)">Kebijakan Privasi</a>
     </p>
   `;
@@ -977,7 +968,7 @@ async function testNotificationNow() {
       await ln.schedule({
         notifications: [{
           id: 999,
-          title: 'CatatUang: Pengingat Tes ☀️',
+          title: 'CatatUang: Pengingat Tes Ã¢Ëœâ‚¬Ã¯Â¸Â',
           body: summaryText(true),
           schedule: { at: new Date(Date.now() + 2500) },
           smallIcon: 'ic_stat_catatuang'
@@ -1117,3 +1108,15 @@ async function init() {
 }
 
 init();
+
+
+
+
+
+
+function openUpdateLink(url){ try{ if(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()){ if(window.Capacitor.Plugins && window.Capacitor.Plugins.Browser){ window.Capacitor.Plugins.Browser.open({url:url}).catch(function(){}); return; } } }catch(e){} try{ window.open(url,'_system'); return; }catch(e){} window.location.href=url; }
+
+
+function showSnack(msg, actionLabel, actionFn){ var sb=document.getElementById('snackbar'); if(!sb)return; sb.innerHTML='<span>'+esc(msg)+'</span>'+(actionLabel?'<button>'+esc(actionLabel)+'</button>':''); if(actionLabel && typeof actionFn==='function'){ var btn=sb.querySelector('button'); if(btn){ btn.onclick=function(){ try{actionFn();}catch(e){} sb.classList.remove('show'); }; } } sb.classList.add('show'); setTimeout(function(){ sb.classList.remove('show'); }, 4000); }
+
+
