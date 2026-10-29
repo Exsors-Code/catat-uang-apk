@@ -582,3 +582,47 @@ button.x:active {
   border: 1px solid var(--line); border-radius: 12px;
   color: var(--acc); font-size: 22px; font-weight: 700;
 }
+
+/* Lock screen PIN */
+.lock-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.lock-card {
+  width: 100%; max-width: 320px; text-align: center;
+}
+.pin-dots {
+  display: flex; justify-content: center; gap: 12px; margin: 20px 0 24px;
+}
+.pin-dots span {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  background: transparent;
+}
+.pin-dots span.on {
+  background: var(--acc); border-color: var(--acc);
+}
+.pin-pad {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.pin-key {
+  height: 56px; border-radius: 16px; border: 1px solid var(--line);
+  background: var(--bg-card); color: var(--ink);
+  font-size: 22px; font-weight: 600; cursor: pointer;
+}
+.pin-key:active { background: var(--bg-card-hover); }
+
+/* Undo toast */
+.undo-toast {
+  position: fixed; left: 16px; right: 16px; bottom: 100px;
+  max-width: 568px; margin: 0 auto;
+  background: var(--ink); color: var(--bg);
+  padding: 14px 18px; border-radius: 14px;
+  box-shadow: var(--shadow); z-index: 900;
+  text-align: center; font-size: 14px; cursor: pointer;
+}
+@media (prefers-color-scheme: light) {
+  .undo-toast { background: #0f1f24; color: #f4f7f6; }
+}
