@@ -248,7 +248,9 @@ nav#nav {
   background: var(--bg-card);
   border-top: 1px solid var(--line);
   padding: 6px 12px calc(env(safe-area-inset-bottom, 0px) + 8px);
-  z-index: 100;
+  z-index: 1000;
+  pointer-events: auto;
+  touch-action: manipulation;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
@@ -268,6 +270,10 @@ nav#nav button {
   gap: 4px;
   cursor: pointer;
   position: relative;
+  z-index: 1;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: color 0.15s ease;
 }
 
@@ -568,7 +574,11 @@ button.x:active {
 
 .hide { display: none !important; }
 
-.snackbar { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); background: #111; color: #fff; padding: 10px 16px; border-radius: 10px; display: none; z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-.snackbar.show { display: flex; gap: 12px; align-items: center; }
-.snackbar button { background: transparent; border: 0; color: var(--acc); font-weight: 700; }
-.lockscreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 2000; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+
+/* Ikon kosong sederhana, tanpa karakter emoji yang bergantung pada font perangkat. */
+.empty-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; margin: 0 auto 8px;
+  border: 1px solid var(--line); border-radius: 12px;
+  color: var(--acc); font-size: 22px; font-weight: 700;
+}
