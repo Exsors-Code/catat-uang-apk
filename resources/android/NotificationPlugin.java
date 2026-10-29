@@ -1,4 +1,4 @@
-﻿package app.catatuang.mobile;
+package app.catatuang.mobile;
 
 import android.content.Context;
 import android.content.Intent;

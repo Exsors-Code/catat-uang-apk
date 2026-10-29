@@ -1,4 +1,4 @@
-﻿package app.catatuang.mobile;
+package app.catatuang.mobile;
 
 import android.app.Notification;
 import android.content.Context;

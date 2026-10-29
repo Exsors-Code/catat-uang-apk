@@ -1,4 +1,4 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 const path = require('path');
 
 const manifestPath = path.join(__dirname, '../android/app/src/main/AndroidManifest.xml');
@@ -31,7 +31,18 @@ if (fs.existsSync(manifestPath)) {
     xml = xml.replace('</application>', serviceSnippet + '\n    </application>');
   }
 
-  xml = xml.replace('<application', '<application android:allowBackup="false" android:fullBackupContent="false" android:usesCleartextTraffic="false"');
+  const appAttrs = {
+    'android:allowBackup': 'false',
+    'android:fullBackupContent': 'false',
+    'android:usesCleartextTraffic': 'false'
+  };
+  Object.keys(appAttrs).forEach(function (name) {
+    xml = xml.replace(new RegExp('\\s+' + name + '="[^"]*"'), '');
+  });
+  const attrSnippet = Object.keys(appAttrs)
+    .map(function (name) { return name + '="' + appAttrs[name] + '"'; })
+    .join(' ');
+  xml = xml.replace('<application', '<application ' + attrSnippet);
 
   fs.writeFileSync(manifestPath, xml, 'utf8');
   console.log('Berhasil memperbarui AndroidManifest.xml');
