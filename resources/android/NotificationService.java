@@ -134,8 +134,8 @@ public class NotificationService extends NotificationListenerService {
                 arr.remove(0);
             }
             prefs.edit().putString(KEY_NOTIFS, arr.toString()).apply();
-            }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             Log.e(TAG, "Gagal menyimpan notifikasi ke SharedPreferences", e);
         }
     }
