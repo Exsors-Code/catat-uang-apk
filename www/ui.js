@@ -1,5 +1,11 @@
 // CatatUang UI - Rendering & DOM helpers
 
+function homeHtml() {
+  const m = today().slice(0, 7);
+  const recent = (S.tx || []).slice().sort((a, b) => (b.d || '').localeCompare(a.d || '')).slice(0, 8);
+  const rows = recent.map(t => `<tr><td>${esc(t.d)}</td><td>${esc(t.note||'-')}</td><td>${esc(t.cat)}</td><td class="out" style="text-align:right">-${rp(t.amt)}</td><td>${esc(t.wallet||'Tunai')}</td></tr>`).join('');
+  return `<div class="card">${budgetCard()}</div>${weekChart()}<div class="card"><h2 style="font-size:16px;margin-bottom:8px">Transaksi Terkini</h2><table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="border-bottom:1px solid var(--line)"><th style="text-align:left;padding:8px">Tanggal</th><th style="text-align:left;padding:8px">Keterangan</th><th style="text-align:left;padding:8px">Kategori</th><th style="text-align:right;padding:8px">Jumlah</th><th style="text-align:left;padding:8px">Dompet</th></tr></thead><tbody>${rows||'<tr><td colspan="5" class="mute" style="text-align:center;padding:16px">Belum ada transaksi</td></tr>'}</tbody></table></div>`;
+}
 function navHtml() {
   return `
 <nav id="nav" style="position:fixed;bottom:0;left:0;right:0;height:72px;background:var(--bg-card);border-top:1px solid var(--line);z-index:100;display:flex;justify-content:center;gap:18px;padding:8px 4px">
