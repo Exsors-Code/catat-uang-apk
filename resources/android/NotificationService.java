@@ -139,9 +139,9 @@ public class NotificationService extends NotificationListenerService {
             Log.e(TAG, "Gagal menyimpan notifikasi ke SharedPreferences", e);
         }
     }
+}
 
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
     }
-}
 }
