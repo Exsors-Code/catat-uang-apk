@@ -144,3 +144,4 @@ public class NotificationService extends NotificationListenerService {
     public void onNotificationRemoved(StatusBarNotification sbn) {
     }
 }
+}
