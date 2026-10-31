@@ -1,5 +1,5 @@
 // CatatUang Utils
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 const NATIVE = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
 
 const rp = (n) => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');

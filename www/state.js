@@ -29,7 +29,7 @@ let S = {
     remindNight: true,
     timeNight: '21:00',
     autoSave: false,
-    githubRepo: '',
+    githubRepo: 'Exsors-Code/catat-uang-apk',
     lastBackupAt: null,
     pinHash: '',
     pinSalt: '',
@@ -71,6 +71,7 @@ function ensureStateDefaults() {
   if (typeof S.set.pinAttempts !== 'number') S.set.pinAttempts = 0;
   if (typeof S.set.pinLockedUntil !== 'number') S.set.pinLockedUntil = 0;
   if (typeof S.set.autoLockMinutes !== 'number') S.set.autoLockMinutes = 5;
+  if (typeof S.set.githubRepo !== 'string' || !S.set.githubRepo.trim()) S.set.githubRepo = 'Exsors-Code/catat-uang-apk';
   if (typeof S.set.biometricEnabled !== 'boolean') S.set.biometricEnabled = false;
   if (typeof S.set.screenProtection !== 'boolean') S.set.screenProtection = true;
 }

@@ -11,6 +11,14 @@ async function checkGithubUpdate(silent) {
     if (!latestTag || !apkAsset) return;
     const compatible = cmpVer(latestTag, APP_VERSION) > 0;
     updateInfo = { tag: latestTag, url: apkAsset.browser_download_url, name: apkAsset.name, size: apkAsset.size, published: j.published_at, compatible };
+    if (compatible && !silent) showToast(`Update v${latestTag} tersedia`, 'success');
+    if (compatible && silent) {
+      const shownKey = 'catatuang-update-notified';
+      if (localStorage.getItem(shownKey) !== latestTag) {
+        localStorage.setItem(shownKey, latestTag);
+        setTimeout(() => showToast(`Update v${latestTag} tersedia`, 'success'), 800);
+      }
+    }
     render();
   } catch (e) {
     if (!silent) ErrorLog.add('checkGithubUpdate failed', e);
