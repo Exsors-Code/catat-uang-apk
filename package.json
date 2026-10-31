@@ -10,7 +10,8 @@
     "build": "node scripts/build.js",
     "patch:android": "node scripts/patch-android.js",
     "android:sync": "npx cap sync android",
-    "android:add": "npx cap add android"
+    "android:add": "npx cap add android",
+    "check": "npm run build && npm test"
   },
   "devDependencies": {
     "eslint": "^8.57.0",

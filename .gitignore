@@ -1,5 +1,34 @@
+# Node.js
 node_modules/
-/android/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
 *.keystore
 *.jks
+*.p12
+*.pfx
 signing-key-info.txt
+
+# Generated Android/Gradle project (generated in CI from Capacitor)
+/android/
+.gradle/
+**/build/
+local.properties
+*.hprof
+
+# IDE / operating system
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Generated outputs
+*.apk
+*.aab
+*.ap_
+*.dex

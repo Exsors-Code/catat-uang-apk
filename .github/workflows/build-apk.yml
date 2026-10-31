@@ -26,11 +26,14 @@ jobs:
           echo "version=$VER" >> $GITHUB_OUTPUT
           echo "Versi aplikasi: $VER"
 
-      - name: Pasang dependensi
-        run: npm install --ignore-scripts
+      - name: Pasang dependensi secara reproducible
+        run: npm ci
+
+      - name: Siapkan Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Buat proyek Android
-        run: npx cap add android || true
+        run: npx cap add android
 
       - name: Salin ikon, kode native, dan konfigurasi izin
         env:
@@ -44,9 +47,10 @@ jobs:
           node scripts/patch-android.js
 
       - name: Setujui lisensi Android SDK
-        run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses || true
+        run: yes | sdkmanager --licenses
+
+      - name: Instal Android SDK yang dibutuhkan
+        run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Sinkron aset web
         run: npx cap sync android
@@ -107,3 +111,5 @@ jobs:
             3. Jika sebelumnya kamu memasang APK **debug**, kamu tetap harus uninstall dulu sekali, lalu pasang APK **release** yang sudah ditandatangani keystore.
           files: CatatUang.apk
           make_latest: true
+          overwrite_files: true
+          fail_on_unmatched_files: true

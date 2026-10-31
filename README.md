@@ -51,11 +51,11 @@ Aplikasi pencatat keuangan Android mandiri berbasis Capacitor. **100% Offline, p
 # 2. Masuk ke folder proyek
 cd catatuang-android
 
-# 3. Install dependensi
-npm install
+# 3. Install dependensi persis sesuai package-lock.json
+npm ci
 
-# 4. Jalankan pengujian
-npm test
+# 4. Jalankan seluruh pemeriksaan dasar
+npm run check
 
 # 5. Jalankan lint
 npm run lint
@@ -66,7 +66,10 @@ npx cap add android
 # 7. Patch Android Manifest (izin, NotificationService, dll.)
 npm run patch:android
 
-# 8. Build APK
+# 8. Sinkronkan plugin dan aset Android
+npx cap sync android
+
+# 9. Build APK
 npx cap build android
 ```
 
@@ -85,6 +88,8 @@ keytool -genkey -v -keystore catatuang.keystore -alias catatuang -keyalg RSA -ke
    - `KEY_PASSWORD`
 
 3. Push ke `main` → GitHub Actions akan build Release yang ditandatangani.
+
+Setiap push ke `main` dan setiap Pull Request juga menjalankan workflow **Quality Checks** untuk memeriksa sintaks JavaScript, pengujian aplikasi, dan konfigurasi build. Proyek Android dibuat otomatis oleh workflow APK; folder `android/` hasil generate tidak perlu di-commit. Sumber Java native tetap disimpan di `resources/android/`.
 
 ---
 
