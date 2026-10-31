@@ -83,7 +83,15 @@ function setupAutoLock() {
     }, timeout);
   };
   ['pointerdown', 'keydown', 'touchstart'].forEach((event) => document.addEventListener(event, resetIdle, { passive: true }));
-  document.addEventListener('visibilitychange', () => { if (document.hidden && S.set.pinHash) { unlocked = false; render(); } else resetIdle(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && S.set.pinHash) {
+      unlocked = false;
+      render();
+    } else {
+      resetIdle();
+      checkNotifListenerPermission().then(() => fetchCapturedNotifications()).catch(() => {});
+    }
+  });
   resetIdle();
 }
 
