@@ -9,13 +9,15 @@ import android.service.notification.StatusBarNotification;
 import android.util.Log;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import java.util.UUID;
 
 public class NotificationService extends NotificationListenerService {
     private static final String TAG = "CatatUangNotif";
     public static final String PREFS_NAME = "catatuang_captured_notifs";
     public static final String KEY_NOTIFS = "pending_list";
+    private static final long DEDUP_WINDOW_MS = 60000;
+    private static final Object LOCK = new Object();
 
-    // Hanya package bank / e-wallet Indonesia yang dikenal
     private static boolean isAllowedPackage(String pkg) {
         if (pkg == null) return false;
         String p = pkg.toLowerCase();
@@ -37,7 +39,8 @@ public class NotificationService extends NotificationListenerService {
                 || p.contains("flip")
                 || p.contains("midtrans")
                 || p.contains("digibank")
-                || p.contains("neobank");
+                || p.contains("neobank")
+                || p.contains("oy");
     }
 
     @Override
@@ -50,7 +53,6 @@ public class NotificationService extends NotificationListenerService {
         if (pkg.equals(getPackageName())) return;
         if (pkg.startsWith("android") || pkg.startsWith("com.android.systemui")) return;
 
-        // Filter ketat: hanya bank/e-wallet
         if (!isAllowedPackage(pkg)) return;
 
         Bundle extras = sbn.getNotification().extras;
@@ -86,7 +88,6 @@ public class NotificationService extends NotificationListenerService {
 
         if (!looksLikeTransaction) return;
 
-        // Abaikan notifikasi info saldo murni
         if ((combined.contains("saldo") || combined.contains("available balance"))
                 && !combined.contains("transfer")
                 && !combined.contains("pembayaran")
@@ -101,13 +102,27 @@ public class NotificationService extends NotificationListenerService {
         NotificationPlugin.onNotificationCaptured(pkg, title, text, subText, postTime);
     }
 
-    private synchronized void saveNotification(String pkg, String title, String text, String subText, long timestamp) {
-        try {
+    private void saveNotification(String pkg, String title, String text, String subText, long timestamp) {
+        synchronized (LOCK) {
+            try {
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             String current = prefs.getString(KEY_NOTIFS, "[]");
             JSONArray arr = new JSONArray(current);
+            for (int i = 0; i < arr.length(); i++) {
+                try {
+                    JSONObject o = arr.getJSONObject(i);
+                    if (o.optString("pkg").equals(pkg) &&
+                        o.optString("title").equals(title) &&
+                        o.optString("text").equals(text)) {
+                        long t = o.optLong("time", 0);
+                        if (timestamp - t < DEDUP_WINDOW_MS) {
+                            return;
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
             JSONObject obj = new JSONObject();
-            obj.put("id", timestamp + "_" + ((int) (Math.random() * 1000)));
+            obj.put("id", UUID.randomUUID().toString());
             obj.put("pkg", pkg);
             obj.put("title", title);
             obj.put("text", text);
@@ -119,8 +134,13 @@ public class NotificationService extends NotificationListenerService {
                 arr.remove(0);
             }
             prefs.edit().putString(KEY_NOTIFS, arr.toString()).apply();
+            }
         } catch (Exception e) {
             Log.e(TAG, "Gagal menyimpan notifikasi ke SharedPreferences", e);
         }
+    }
+
+    @Override
+    public void onNotificationRemoved(StatusBarNotification sbn) {
     }
 }

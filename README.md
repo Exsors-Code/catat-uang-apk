@@ -1,4 +1,4 @@
-# CatatUang untuk Android (v1.3)
+# CatatUang untuk Android (v1.4.0)
 
 Aplikasi pencatat keuangan Android mandiri berbasis Capacitor. **100% Offline, privat, dan tanpa pihak ketiga**. Semua data keuangan dan model OCR tersimpan aman di perangkatmu.
 
@@ -10,120 +10,114 @@ Aplikasi pencatat keuangan Android mandiri berbasis Capacitor. **100% Offline, p
    - Tab **Deteksi** dengan konfirmasi 1-tap atau mode *Simpan Otomatis*.
    - Filter package ketat, cegah duplikat, top-up tidak dihitung sebagai income.
 
-2. **Pengingat Rutin Harian (Siang & Malam)**
+2. **Pengamanan PIN (PBKDF2-SHA256)**
+   - PIN 4–6 digit dengan hashing PBKDF2-SHA256 (200.000 iterasi)
+   - Salt acak untuk setiap PIN
+   - Pembatasan percobaan: maksimal 5 percobaan, kunci 15 menit
+   - Migrasi otomatis dari PIN lama ke sistem baru
+
+3. **Pengingat Rutin Harian (Siang & Malam)**
    - Pengingat siang & ringkasan malam (jam bisa diatur).
 
-3. **OCR Struk Offline (Tesseract.js WASM)**
+4. **OCR Struk Offline (Tesseract.js WASM)**
    - Foto struk → baca total & kategori tanpa internet.
 
-4. **Anggaran**
+5. **Anggaran**
    - Anggaran total bulanan + **anggaran per kategori**.
 
-5. **Pembaruan dari GitHub (In-App Updater)**
+6. **Pembaruan dari GitHub (In-App Updater)**
    - Cek rilis APK terbaru langsung dari menu Pengaturan.
+   - Pemeriksaan kompatibilitas versi dan peringatan cadangan data.
 
-6. **Desain Modern Fintech**
+7. **Desain Modern Fintech**
    - Dark / Light mode, navigasi bawah, kontras tinggi.
+   - Aksesibilitas: aria-label, navigasi keyboard, kontras warna.
 
-7. **Cadangan**
-   - Ekspor/impor JSON & CSV. Restore wajib konfirmasi.
+8. **Cadangan**
+   - Ekspor/impor JSON. Restore wajib konfirmasi.
 
 ---
 
-## Kenapa APK Baru Harus Uninstall? (Dan Cara Agar Tidak Perlu)
+## Cara Instalasi dan Build
 
-Android **hanya** mengizinkan update (timpa) aplikasi jika:
+### Prasyarat
+- Node.js >= 20
+- npm
+- Android Studio (untuk build APK)
 
-| Syarat | Keterangan |
-|--------|------------|
-| Package name sama | `app.catatuang.mobile` (sudah sama) |
-| **Tanda tangan (signature) sama** | Keystore yang sama harus dipakai di setiap build |
-| versionCode naik | Sudah otomatis dari nomor run GitHub Actions |
+### Langkah Instalasi
+```bash
+# 1. Clone atau download repositori ini
+# 2. Masuk ke folder proyek
+cd catatuang-android
 
-### Penyebab paling sering harus uninstall
+# 3. Install dependensi
+npm install
 
-1. **Belum set secret keystore** → GitHub Actions membangun APK **Debug**.
-   - Debug key beda tiap mesin/runner → Android menganggap aplikasi **berbeda**.
-2. Kamu pernah pasang APK **debug**, lalu unduh APK **release** (atau sebaliknya).
-3. Keystore diganti di tengah jalan.
+# 4. Jalankan pengujian
+npm test
 
-### Solusi permanen (sekali setup)
+# 5. Jalankan lint
+npm run lint
 
-1. Buat keystore di komputer (sekali saja):
+# 6. Tambah platform Android (jika belum ada)
+npx cap add android
 
+# 7. Patch Android Manifest (izin, NotificationService, dll.)
+npm run patch:android
+
+# 8. Build APK
+npx cap build android
+```
+
+### Build APK untuk Release (dengan tanda tangan)
+Untuk agar update APK bisa ditimpa tanpa uninstall, gunakan keystore yang sama:
+
+1. Buat keystore (sekali saja):
 ```bash
 keytool -genkey -v -keystore catatuang.keystore -alias catatuang -keyalg RSA -keysize 2048 -validity 10000
 ```
 
-2. Encode ke base64:
+2. Encode ke base64 dan set sebagai GitHub Secrets:
+   - `KEYSTORE_BASE64`
+   - `KEYSTORE_PASSWORD`
+   - `KEY_ALIAS`
+   - `KEY_PASSWORD`
 
-```bash
-# Linux / macOS
-base64 -w0 catatuang.keystore > keystore.b64
-
-# Windows (PowerShell)
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("catatuang.keystore")) | Set-Content keystore.b64
-```
-
-3. Di GitHub repo → **Settings → Secrets and variables → Actions**, buat 4 secret:
-
-| Secret | Isi |
-|--------|-----|
-| `KEYSTORE_BASE64` | isi file `keystore.b64` |
-| `KEYSTORE_PASSWORD` | password keystore |
-| `KEY_ALIAS` | `catatuang` (atau alias yang kamu pakai) |
-| `KEY_PASSWORD` | password alias |
-
-4. Push ke `main` → Actions akan build **Release** yang ditandatangani keystore yang sama.
-5. **Sekali** uninstall APK debug lama (kalau masih terpasang), lalu pasang APK release dari Releases.
-6. Mulai saat itu, setiap update APK **bisa langsung ditimpa** tanpa hapus data.
-
-> Simpan file `.keystore` dan password-nya di tempat aman. Kalau hilang, update berikutnya akan memaksa uninstall lagi.
-
----
-
-## Cara Membangun APK Lewat GitHub Actions
-
-1. Buat repositori **publik** di GitHub, upload isi folder ini.
-2. (Opsional tapi sangat disarankan) set 4 secret keystore di atas.
-3. Tab **Actions** → workflow **Build APK** berjalan otomatis (~5–7 menit).
-4. Tab **Releases** → unduh `CatatUang.apk` dari tag `v1.3.0` (atau versi terbaru).
+3. Push ke `main` → GitHub Actions akan build Release yang ditandatangani.
 
 ---
 
 ## Cara Mengaktifkan Deteksi Notifikasi
 
-1. Buka **CatatUang** → tab **Deteksi** atau **Atur**.
-2. Ketuk **Pengaturan Akses Notifikasi Android**.
+1. Buka **CatatUang** → tab **Deteksi**.
+2. Ketuk tombol untuk membuka pengaturan akses notifikasi Android.
 3. Aktifkan izin untuk **CatatUang**.
-4. (Android 13+) izinkan juga notifikasi biasa di pengaturan aplikasi.
-5. Disarankan: **Abaikan optimisasi baterai** untuk CatatUang agar listener tidak dimatikan sistem.
-
----
-
-## Perubahan v1.3
-
-### Dari v1.2 (masih berlaku)
-- Tanggal transaksi dari **timestamp notifikasi**
-- Filter package bank/e-wallet ketat; top-up bukan income
-- Cek duplikat; anggaran per kategori; restore wajib konfirmasi
-- Updater semantik; keystore untuk update tanpa uninstall
-
-### Baru di v1.3
-- **Dompet**: kelola daftar dompet + saldo awal + saldo berjalan
-- **Transfer antar dompet** (tidak dihitung pengeluaran/pemasukan)
-- **Transaksi berulang** (tagihan/gaji otomatis tiap tanggal)
-- **Cari & filter** di laporan bulanan (teks, kategori, dompet)
-- **PIN keamanan** (4–6 digit, kunci saat buka app / dari background)
-- **Undo** setelah hapus transaksi/pemasukan/transfer (±8 detik)
-- **Kategori kustom** + pembelajaran dari koreksi user
-- **Pemasukan lengkap**: tanggal, dompet, bisa diedit
-- **OCR** membaca tanggal struk & nama merchant lebih baik
-- Onboarding singkat izin notifikasi
-
+4. (Android 13+) izinkan notifikasi biasa di pengaturan aplikasi.
+5. Disarankan: abaikan optimisasi baterai untuk CatatUang.
 
 ---
 
 ## Privasi
 
 Semua data (transaksi, foto struk, model OCR) disimpan **hanya di perangkat**. Tidak ada akun, tidak ada server, tidak ada analitik pihak ketiga.
+
+---
+
+## Perubahan v1.4.0
+
+Lihat [CHANGELOG.md](CHANGELOG.md) untuk daftar lengkap perubahan.
+
+### Highlight
+- **Keamanan PIN**: PBKDF2-SHA256 + salt acak + rate limiting
+- **Update APK**: kompatibilitas versi + peringatan cadangan data
+- **Notifikasi**: perbaikan race condition, UUID, deduplikasi
+- **Kode**: pemisahan modul, error handling terpusat, ESLint/Prettier
+- **Pengujian**: 23 test case (`npm test`)
+- **Dokumentasi**: CHANGELOG.md, CONTRIBUTING.md, README.md diperbarui
+
+---
+
+## Lisensi
+
+MIT License

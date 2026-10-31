@@ -109,6 +109,66 @@ h2 {
   font-size: 13px;
 }
 
+/* Toast notifications */
+.cu-toast {
+  position: fixed;
+  left: 50%;
+  top: 20px;
+  transform: translateX(-50%) translateY(-120%);
+  z-index: 10000;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  opacity: 0;
+  max-width: 90vw;
+  text-align: center;
+}
+.cu-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+.cu-toast-error {
+  background: var(--out);
+  color: #fff;
+}
+.cu-toast-success {
+  background: var(--inn);
+  color: #fff;
+}
+.cu-toast-warning {
+  background: var(--warn);
+  color: #000;
+}
+
+/* Focus visible for keyboard navigation */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+/* Skip to content */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--acc);
+  color: #fff;
+  padding: 8px 12px;
+  z-index: 10001;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 0;
+}
+
 .out { color: var(--out); }
 .inn { color: var(--inn); }
 

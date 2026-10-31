@@ -2,10 +2,38 @@
   "appId": "app.catatuang.mobile",
   "appName": "CatatUang",
   "webDir": "www",
+  "matchedNativeDependencies": [],
   "plugins": {
     "LocalNotifications": {
       "smallIcon": "ic_stat_catatuang",
-      "iconColor": "#0F766E"
+      "iconColor": "#0F766E",
+      "sound": null
+    },
+    "Camera": {
+      "presentationStyle": "popover"
     }
+  },
+  "android": {
+    "buildOptions": {
+      "release": {
+        "keystoreFile": "",
+        "keystorePassword": "",
+        "alias": "",
+        "password": ""
+      },
+      "debug": {
+        "keystoreFile": "",
+        "keystorePassword": "",
+        "alias": "",
+        "password": ""
+      }
+    },
+    "permissions": [
+      "INTERNET",
+      "VIBRATE",
+      "POST_NOTIFICATIONS",
+      "SCHEDULE_EXACT_ALARM",
+      "RECEIVE_BOOT_COMPLETED"
+    ]
   }
 }
