@@ -10,13 +10,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
-      - uses: actions/setup-java@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses
 
       - name: Baca versi dari utils.js
         id: ver
@@ -26,21 +40,11 @@ jobs:
           echo "version=$VER" >> $GITHUB_OUTPUT
           echo "Versi aplikasi: $VER"
 
-      - name: Pasang dependensi secara reproducible
-        run: npm ci
-
-      - name: Siapkan Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK packages
-        run: |
-          sdkmanager --install "platform-tools"
-          sdkmanager --install "platforms;android-35"
-          sdkmanager --install "build-tools;35.0.0"
-          sdkmanager --licenses
+      - name: Pasang dependensi
+        run: npm install --ignore-scripts
 
       - name: Buat proyek Android
-        run: npx cap add android
+        run: npx cap add android || true
 
       - name: Salin ikon, kode native, dan konfigurasi izin
         env:
@@ -52,12 +56,6 @@ jobs:
           mkdir -p android/app/src/main/java/app/catatuang/mobile
           cp -f resources/android/*.java android/app/src/main/java/app/catatuang/mobile/
           node scripts/patch-android.js
-
-      - name: Setujui lisensi Android SDK
-        run: yes | sdkmanager --licenses
-
-      - name: Instal Android SDK yang dibutuhkan
-        run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Sinkron aset web
         run: npx cap sync android
@@ -73,7 +71,10 @@ jobs:
           chmod +x gradlew
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           if [ -z "$BT" ]; then
-            echo "❌ Android build-tools tidak ditemukan di $ANDROID_HOME"
+            BT=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/* | sort -V | tail -1)
+          fi
+          if [ -z "$BT" ]; then
+            echo "❌ Android build-tools tidak ditemukan"
             exit 1
           fi
           APK_SIGNER="$BT/apksigner"
@@ -89,7 +90,7 @@ jobs:
               --out ../CatatUang.apk \
               app/build/outputs/apk/release/app-release-unsigned.apk
           else
-            echo "⚠️  Keystore TIDAK ada — build Debug"
+            echo "⚠️ Keystore TIDAK ada — build Debug"
             echo "   APK debug TIDAK bisa menimpa APK release (dan sebaliknya)."
             echo "   Lihat README: set secret KEYSTORE_* agar update tanpa uninstall."
             ./gradlew assembleDebug
