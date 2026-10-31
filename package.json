@@ -8,6 +8,7 @@
     "lint": "eslint www/",
     "format": "prettier --write www/",
     "build": "node scripts/build.js",
+    "set:build-version": "node scripts/set-build-version.js",
     "patch:android": "node scripts/patch-android.js",
     "android:sync": "npx cap sync android",
     "android:add": "npx cap add android",

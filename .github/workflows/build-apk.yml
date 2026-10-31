@@ -28,13 +28,14 @@ jobs:
           packages: "platform-tools platforms;android-34 build-tools;34.0.0"
           accept-android-sdk-licenses: true
 
-      - name: Baca versi dari utils.js
+      - name: Siapkan versi rilis unik
         id: ver
         run: |
-          VER=$(grep -oP "APP_VERSION\s*=\s*'\K[^']+" www/utils.js | head -1)
-          if [ -z "$VER" ]; then VER="1.4.0"; fi
+          BASE=$(node -p "require('./package.json').version")
+          VER="${BASE}.${GITHUB_RUN_NUMBER}"
+          node scripts/set-build-version.js "$VER"
           echo "version=$VER" >> $GITHUB_OUTPUT
-          echo "Versi aplikasi: $VER"
+          echo "Versi rilis APK: $VER"
 
       - name: Pasang dependensi
         run: npm install --ignore-scripts
