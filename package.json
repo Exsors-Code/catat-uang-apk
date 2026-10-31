@@ -9,7 +9,8 @@
     "format": "prettier --write www/",
     "build": "node scripts/build.js",
     "patch:android": "node scripts/patch-android.js",
-    "prepare": "npx cap sync android"
+    "android:sync": "npx cap sync android",
+    "android:add": "npx cap add android"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
