@@ -32,6 +32,13 @@ jobs:
       - name: Siapkan Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager --install "platform-tools"
+          sdkmanager --install "platforms;android-35"
+          sdkmanager --install "build-tools;35.0.0"
+          sdkmanager --licenses
+
       - name: Buat proyek Android
         run: npx cap add android
 
