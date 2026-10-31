@@ -1,13 +1,54 @@
 // CatatUang OCR
 const TESS = { workerPath: 'lib/worker.min.js', corePath: 'lib/', langPath: 'lib/lang', gzip: true };
 
+let tesseractLoader = null;
+
+function loadTesseract() {
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  if (tesseractLoader) return tesseractLoader;
+  tesseractLoader = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'lib/tesseract.min.js';
+    script.async = true;
+    script.onload = () => window.Tesseract ? resolve(window.Tesseract) : reject(new Error('Tesseract tidak tersedia'));
+    script.onerror = () => reject(new Error('Gagal memuat OCR'));
+    document.head.appendChild(script);
+  });
+  return tesseractLoader;
+}
+
+async function preprocessImage(blob) {
+  const bitmap = await createImageBitmap(blob);
+  const maxWidth = 1800;
+  const scale = Math.min(1, maxWidth / bitmap.width);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  const image = context.getImageData(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < image.data.length; i += 4) {
+    const gray = image.data[i] * 0.299 + image.data[i + 1] * 0.587 + image.data[i + 2] * 0.114;
+    const contrast = Math.max(0, Math.min(255, (gray - 128) * 1.35 + 128));
+    image.data[i] = contrast;
+    image.data[i + 1] = contrast;
+    image.data[i + 2] = contrast;
+  }
+  context.putImageData(image, 0, 0);
+  return new Promise((resolve) => canvas.toBlob((output) => resolve(output || blob), 'image/jpeg', 0.92));
+}
+
 async function scan(blob) {
   if (!blob) return;
-  ocrMsg = '';
+  ocrMsg = 'Menyiapkan gambar…';
   render();
   try {
-    const worker = await Tesseract.createWorker(['eng', 'ind']);
-    const { data } = await worker.recognize(blob);
+    const Tesseract = await loadTesseract();
+    const preparedImage = await preprocessImage(blob);
+    ocrMsg = 'Membaca struk…';
+    render();
+    const worker = await Tesseract.createWorker(['eng', 'ind'], 1, { workerPath: TESS.workerPath, corePath: TESS.corePath, langPath: TESS.langPath, gzip: TESS.gzip });
+    const { data } = await worker.recognize(preparedImage);
     await worker.terminate();
     const parsed = parseReceipt(data.text || '');
     if (parsed.amt) {

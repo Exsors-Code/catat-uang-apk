@@ -36,6 +36,9 @@ let S = {
     pinAlgo: 'pbkdf2',
     pinAttempts: 0,
     pinLockedUntil: 0,
+    autoLockMinutes: 5,
+    biometricEnabled: false,
+    screenProtection: true,
     onboardingDone: false,
   },
 };
@@ -67,6 +70,9 @@ function ensureStateDefaults() {
   if (typeof S.set.budget !== 'number') S.set.budget = +S.set.budget || 0;
   if (typeof S.set.pinAttempts !== 'number') S.set.pinAttempts = 0;
   if (typeof S.set.pinLockedUntil !== 'number') S.set.pinLockedUntil = 0;
+  if (typeof S.set.autoLockMinutes !== 'number') S.set.autoLockMinutes = 5;
+  if (typeof S.set.biometricEnabled !== 'boolean') S.set.biometricEnabled = false;
+  if (typeof S.set.screenProtection !== 'boolean') S.set.screenProtection = true;
 }
 
 function migrateLegacyState(loaded) {

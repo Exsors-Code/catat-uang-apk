@@ -1,5 +1,6 @@
 // CatatUang v1.4.0 - Entry Point
 let initFailed = false;
+let idleTimer = null;
 
 async function safeInit() {
   try {
@@ -9,6 +10,8 @@ async function safeInit() {
     pinInput = '';
     if (needsLock()) { unlocked = false; } else { unlocked = true; }
     render();
+    setupAutoLock();
+    configureNativeSecurity();
     if (typeof Capacitor !== 'undefined') {
       try {
         Capacitor.Plugins?.CatatUangNotification?.addListener('notificationReceived', (data) => {
@@ -68,5 +71,30 @@ function init() {
   });
 }
 
-window.addEventListener('DOMContentLoaded', init);
-window.addEventListener('load', init);
+function setupAutoLock() {
+  const resetIdle = () => {
+    if (idleTimer) clearTimeout(idleTimer);
+    if (!S.set.pinHash || !unlocked) return;
+    const timeout = Math.max(1, +S.set.autoLockMinutes || 5) * 60 * 1000;
+    idleTimer = setTimeout(() => {
+      unlocked = false;
+      render();
+      showToast('Aplikasi dikunci karena tidak aktif');
+    }, timeout);
+  };
+  ['pointerdown', 'keydown', 'touchstart'].forEach((event) => document.addEventListener(event, resetIdle, { passive: true }));
+  document.addEventListener('visibilitychange', () => { if (document.hidden && S.set.pinHash) { unlocked = false; render(); } else resetIdle(); });
+  resetIdle();
+}
+
+async function configureNativeSecurity() {
+  const plugin = window.Capacitor?.Plugins?.CatatUangSecurity;
+  if (!plugin) return;
+  try {
+    await plugin.setScreenProtection({ enabled: S.set.screenProtection !== false });
+  } catch (e) {
+    ErrorLog.add('Screen protection setup failed', e);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', init, { once: true });

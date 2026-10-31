@@ -27,7 +27,8 @@ const permissions = [
   'android.permission.SCHEDULE_EXACT_ALARM',
   'android.permission.RECEIVE_BOOT_COMPLETED',
   'android.permission.INTERNET',
-  'android.permission.VIBRATE'
+  'android.permission.VIBRATE',
+  'android.permission.USE_BIOMETRIC'
 ];
 
 const permsSnippet = permissions
