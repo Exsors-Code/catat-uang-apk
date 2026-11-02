@@ -19,7 +19,7 @@ import android.os.PowerManager;
 import android.provider.Settings;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.core.graphics.drawable.IconCompat;
+import android.graphics.drawable.Icon;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -33,7 +33,7 @@ import java.util.Set;
 
 @CapacitorPlugin(name = "CatatUangNotification")
 public class NotificationPlugin extends Plugin {
-    private static NotificationPlugin instance;
+    public static NotificationPlugin instance;
 
     public static final String ACTION_NOTIF_CONFIRM = "app.catatuang.mobile.NOTIF_CONFIRM";
     public static final String ACTION_NOTIF_DISMISS = "app.catatuang.mobile.NOTIF_DISMISS";
@@ -197,7 +197,7 @@ public class NotificationPlugin extends Plugin {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
                 ShortcutManager sm = ctx.getSystemService(ShortcutManager.class);
                 if (sm != null) {
-                    List<ShortcutInfo> shortcuts = sm.getShortcuts();
+                    List<ShortcutInfo> shortcuts = sm.getShortcuts(0);
                     for (ShortcutInfo si : shortcuts) {
                         if (SHORTCUT_ID.equals(si.getId())) {
                             ret.put("pinned", true);
@@ -226,7 +226,7 @@ public class NotificationPlugin extends Plugin {
                 return;
             }
             boolean pinned = false;
-            for (ShortcutInfo si : sm.getShortcuts()) {
+            for (ShortcutInfo si : sm.getShortcuts(0)) {
                 if (SHORTCUT_ID.equals(si.getId())) {
                     pinned = true;
                     break;
@@ -249,7 +249,7 @@ public class NotificationPlugin extends Plugin {
             ShortcutInfo info = new ShortcutInfo.Builder(ctx, SHORTCUT_ID)
                     .setShortLabel("Tambah Transaksi")
                     .setLongLabel("Buka CatatUang dan tambah transaksi baru")
-                    .setIcon(IconCompat.createWithResource(ctx, R.mipmap.ic_launcher))
+                    .setIcon(Icon.createWithResource(ctx, R.mipmap.ic_launcher))
                     .setIntent(launch)
                     .build();
             IntentSender callback = null;
