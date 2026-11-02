@@ -42,7 +42,7 @@ public class NotificationPlugin extends Plugin {
     public static final String SHORTCUT_ID = "catatuang_quick_add";
 
     private static final String CHANNEL_ID = "catatuang_detected";
-    private static final int WIDGET_HOST_ID = 0xCATA01;
+    private static final int WIDGET_HOST_ID = 0xCAFE01;
 
     @Override
     public void load() {
