@@ -20,7 +20,59 @@ function pageHeader(title, subtitle, action = '') { return `<header class="page-
 function navItem(id, label, icon) { const active = tab === id; return `<button class="nav-item ${active ? 'active' : ''}" onclick="setTab('${id}')" aria-label="${label}" aria-current="${active ? 'page' : 'false'}">${icon}<span>${label}</span></button>`; }
 function navHtml() { return `<nav class="bottom-nav" aria-label="Navigasi utama">${navItem('home', 'Beranda', ICONS.home)}${navItem('history', 'Riwayat', ICONS.history)}<button class="nav-add" onclick="openAddSheet()" aria-label="Tambah transaksi">${ICONS.plus}</button>${navItem('budget', 'Anggaran', ICONS.budget)}${navItem('settings', 'Pengaturan', ICONS.settings)}</nav>`; }
 function emptyState(title, text, actionLabel = '') { return `<section class="empty card"><div class="empty-art">✦</div><h2>${title}</h2><p>${text}</p>${actionLabel ? `<button class="primary-button" onclick="openAddSheet()">${actionLabel}</button>` : ''}</section>`; }
-function transactionCard(item) { const transfer = item.type === 'transfer'; const income = item.type === 'in'; const typ = transfer ? 'transfer' : income ? 'in' : 'out'; const cat = transfer ? 'Transfer' : (item.cat || (income ? 'Pemasukan' : 'Lainnya')); const title = transfer ? (item.note || `${item.from} ke ${item.to}`) : (item.note || cat); const typeClass = transfer ? 'transfer' : income ? 'income' : ''; const sign = income ? '+' : transfer ? '' : '−'; return `<article class="transaction card"><span class="category-icon ${typeClass}">${CATEGORY_ICONS[cat] || '•'}</span><div><div class="transaction-title">${esc(title)}</div><div class="transaction-meta">${esc(item.d || today())} · ${esc(transfer ? `${item.from} → ${item.to}` : item.wallet || 'Tunai')}</div></div><span class="transaction-amount ${income ? 'inn' : transfer ? '' : 'out'}">${sign}${rp(item.amt)}</span><button class="icon-button" onclick="editTransaction('${esc(item.id)}', '${esc(typ)}')" aria-label="Edit">${ICONS.edit}</button></article>`; }
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function savePhoto(file) {
+  const dataUrl = await readFileAsDataURL(file);
+  const photoId = uid();
+  await DB.put('photos', photoId, {
+    id: photoId,
+    dataUrl,
+    name: file.name,
+    size: file.size,
+    createdAt: new Date().toISOString(),
+  });
+  return photoId;
+}
+
+async function getPhoto(photoId) {
+  return await DB.get('photos', photoId);
+}
+
+async function viewPhoto(photoId) {
+  const photo = await getPhoto(photoId);
+  if (!photo) return showError('Foto tidak ditemukan');
+  const old = document.getElementById('cu-photo-modal');
+  if (old) old.remove();
+  const el = document.createElement('div');
+  el.id = 'cu-photo-modal';
+  el.style.position = 'fixed';
+  el.style.top = '0';
+  el.style.left = '0';
+  el.style.width = '100vw';
+  el.style.height = '100vh';
+  el.style.background = 'rgba(0,0,0,0.9)';
+  el.style.display = 'flex';
+  el.style.flexDirection = 'column';
+  el.style.alignItems = 'center';
+  el.style.justifyContent = 'center';
+  el.style.zIndex = '100';
+  el.innerHTML = `
+    <button onclick="document.getElementById('cu-photo-modal').remove()" style="position:absolute;top:12px;right:12px;background:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;z-index:101">&times;</button>
+    <img src="${photo.dataUrl}" style="max-width:90vw;max-height:75vh;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.5)">
+    <div style="margin-top:10px;color:#fff;font-size:13px">${esc(photo.name || '')} (${Math.round((photo.size || 0) / 1024)} KB)</div>
+  `;
+  document.body.appendChild(el);
+}
+
+function transactionCard(item) { const transfer = item.type === 'transfer'; const income = item.type === 'in'; const typ = transfer ? 'transfer' : income ? 'in' : 'out'; const cat = transfer ? 'Transfer' : (item.cat || (income ? 'Pemasukan' : 'Lainnya')); const title = transfer ? (item.note || `${item.from} ke ${item.to}`) : (item.note || cat); const typeClass = transfer ? 'transfer' : income ? 'income' : ''; const sign = income ? '+' : transfer ? '' : '−'; const photoBtn = item.img ? `<button class="icon-button" onclick="viewPhoto('${esc(item.img)}')" aria-label="Lihat foto struk">📷</button>` : ''; return `<article class="transaction card"><span class="category-icon ${typeClass}">${CATEGORY_ICONS[cat] || '•'}</span><div><div class="transaction-title">${esc(title)}</div><div class="transaction-meta">${esc(item.d || today())} · ${esc(transfer ? `${item.from} → ${item.to}` : item.wallet || 'Tunai')}</div></div><span class="transaction-amount ${income ? 'inn' : transfer ? '' : 'out'}">${sign}${rp(item.amt)}</span><button class="icon-button" onclick="editTransaction('${esc(item.id)}', '${esc(typ)}')" aria-label="Edit">${ICONS.edit}</button>${photoBtn}</article>`; }
 function heroHtml() { const month = today().slice(0, 7); return `<section class="hero card"><div class="hero-top"><span>Total saldo</span><span>${monthName(month)}</span></div><div class="hero-amount" data-count="${totalBalance()}">${rp(totalBalance())}</div><div class="summary-row"><div class="summary-item"><span>Pemasukan bulan ini</span><strong class="inn">+${rp(monthIn(month))}</strong></div><div class="summary-item"><span>Pengeluaran bulan ini</span><strong class="out">−${rp(monthOut(month))}</strong></div></div></section>`; }
 function budgetOverview() { const limit = +S.set.budget || 0; const spent = monthOut(today().slice(0, 7)); if (!limit) return `<section class="budget-card card"><h3>Belum ada anggaran bulanan</h3><p class="mute">Atur batas pengeluaran agar aplikasi dapat memberi peringatan.</p><button class="secondary-button" onclick="setTab('budget')">Atur anggaran</button></section>`; const percentage = Math.round((spent / limit) * 100); const over = spent > limit; const status = over ? 'over' : percentage >= 80 ? 'warn' : ''; return `<section class="budget-card card"><div class="budget-meta"><h3>Anggaran bulan ini</h3><span>${daysLeft()} hari tersisa</span></div><div class="progress"><i style="width:${Math.min(percentage, 100)}%;background:${over ? 'var(--out)' : percentage >= 80 ? 'var(--gold)' : 'var(--acc)'}"></i></div><div class="budget-meta"><span>${Math.min(percentage, 100)}% terpakai</span><strong class="budget-status ${status}">${over ? `Melebihi ${rp(spent - limit)}` : `Sisa ${rp(limit - spent)}`}</strong></div></section>`; }
 function homeHtml() { const items = recentItems().slice(0, 5); return `<div class="screen">${pageHeader('Halo, mari atur uangmu', 'Ringkasan keuangan')}${heroHtml()}<section class="section">${budgetOverview()}</section><section class="section"><div class="section-head"><h2>Transaksi terbaru</h2><button class="text-button" onclick="setTab('history')">Lihat semua</button></div>${items.length ? `<div class="transaction-list">${items.map(transactionCard).join('')}</div>` : emptyState('Belum ada transaksi', 'Mulai catat pemasukan atau pengeluaran pertamamu.', 'Tambah transaksi')}</section></div>`; }
@@ -98,7 +150,7 @@ function saveBudgetFromInput() { const input = document.getElementById('budget-l
 }
 async function openNotificationPermission() { const plugin = window.Capacitor?.Plugins?.CatatUangNotification; if (!plugin) return showError('Fitur ini hanya tersedia pada aplikasi Android'); try { await plugin.openPermissionSettings(); showToast('Aktifkan CatatUang pada halaman akses notifikasi Android'); } catch (error) { showError('Tidak dapat membuka pengaturan notifikasi'); } }
 async function refreshNotifications() { await checkNotifListenerPermission(); await fetchCapturedNotifications(); render(); }
-function selectReceiptScreenshot() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = () => { const file = input.files && input.files[0]; if (!file) return; draft.img = file; scan(file); }; input.click(); }
+async function selectReceiptScreenshot() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = async () => { const file = input.files && input.files[0]; if (!file) return; try { const photoId = await savePhoto(file); draft.img = photoId; showToast('Foto struk tersimpan', 'success'); } catch (e) { showError('Gagal menyimpan foto: ' + e.message); return; } scan(file); }; input.click(); }
 async function toggleBiometric() { if (!S.set.pinHash) return showError('Atur PIN terlebih dahulu sebelum mengaktifkan biometrik'); const plugin = window.Capacitor?.Plugins?.CatatUangSecurity; if (!plugin) return showError('Biometrik hanya tersedia pada aplikasi Android'); try { const state = await plugin.isBiometricAvailable(); if (!state.available) return showError('Biometrik tidak didukung perangkat ini'); if (!S.set.biometricEnabled) await plugin.authenticate(); S.set.biometricEnabled = !S.set.biometricEnabled; save(); render(); showToast(S.set.biometricEnabled ? 'Biometrik diaktifkan' : 'Biometrik dimatikan', 'success'); } catch (error) { showError('Biometrik belum dapat digunakan'); } }
 async function toggleScreenProtection() { S.set.screenProtection = !S.set.screenProtection; save(); try { await window.Capacitor?.Plugins?.CatatUangSecurity?.setScreenProtection({ enabled: S.set.screenProtection }); } catch (error) { ErrorLog.add('Screen protection toggle failed', error); } render(); }
 function confirmAllDetected() { const pending = [...(S.detected || [])]; pending.forEach((n) => addTx(n.amt, (n.title || '').slice(0, 40), predictCat(`${n.title || ''} ${n.text || ''}`), 'Tunai', n.d || dateFromTs(n.time))); S.detected = []; save(); render(); showToast('Semua transaksi disimpan', 'success'); }
