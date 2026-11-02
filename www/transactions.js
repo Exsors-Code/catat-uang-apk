@@ -186,3 +186,40 @@ function applyRecurring() {
   });
   if (changed) save();
 }
+
+function addGoal(name, target, saved, deadline) {
+  const item = {
+    id: uid(),
+    name: name || '',
+    target: +target || 0,
+    saved: +saved || 0,
+    deadline: deadline || '',
+    createdAt: new Date().toISOString(),
+  };
+  S.goals.unshift(item);
+  pushUndo('goal', item);
+  save();
+  render();
+  return item;
+}
+
+function removeGoal(id) {
+  const i = (S.goals || []).findIndex((g) => g.id === id);
+  if (i < 0) return;
+  const item = S.goals.splice(i, 1)[0];
+  pushUndo('goal', item);
+  save();
+  render();
+  if (typeof showUndo === 'function') showUndo('goal', item);
+}
+
+function updateGoal(id, fields) {
+  const g = (S.goals || []).find((x) => x.id === id);
+  if (!g) return false;
+  Object.assign(g, fields);
+  if (fields.target !== undefined) g.target = +g.target || 0;
+  if (fields.saved !== undefined) g.saved = +g.saved || 0;
+  save();
+  render();
+  return true;
+}

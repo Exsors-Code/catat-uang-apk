@@ -152,6 +152,7 @@ async function loadState() {
   S.inc = await DB.all('inc');
   S.detected = await DB.all('detected');
   S.transfers = await DB.all('transfers');
+  S.goals = await DB.all('goals');
   ensureStateDefaults();
 }
 
@@ -171,6 +172,7 @@ async function saveState() {
   await saveStore('inc', S.inc);
   await saveStore('detected', S.detected);
   await saveStore('transfers', S.transfers);
+  await saveStore('goals', S.goals);
 }
 
 async function saveStore(store, arr) {

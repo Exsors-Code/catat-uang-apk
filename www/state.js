@@ -19,6 +19,7 @@ let S = {
   transfers: [],
   wallets: DEFAULT_WALLETS.map((n) => ({ name: n, start: 0 })),
   recurring: [],
+  goals: [],
   customCats: [],
   catLearn: {},
   set: {
@@ -62,6 +63,7 @@ function ensureStateDefaults() {
   if (!Array.isArray(S.detected)) S.detected = [];
   if (!Array.isArray(S.transfers)) S.transfers = [];
   if (!Array.isArray(S.recurring)) S.recurring = [];
+  if (!Array.isArray(S.goals)) S.goals = [];
   if (!Array.isArray(S.customCats)) S.customCats = [];
   if (!S.catLearn || typeof S.catLearn !== 'object') S.catLearn = {};
   if (!Array.isArray(S.wallets)) S.wallets = DEFAULT_WALLETS.map((n) => ({ name: n, start: 0 }));
