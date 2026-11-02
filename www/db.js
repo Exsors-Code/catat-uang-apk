@@ -175,6 +175,16 @@ async function saveState() {
   await saveStore('goals', S.goals);
 }
 
+async function performAutoBackup(stateSnapshot) {
+  const ts = Date.now();
+  await DB.put('meta', `autoBackup_${ts}`, {
+    type: 'autoBackup',
+    createdAt: new Date().toISOString(),
+    data: stateSnapshot,
+  });
+  return ts;
+}
+
 async function saveStore(store, arr) {
   const keys = new Set((arr || []).map((x) => x && x.id).filter(Boolean));
   const existing = new Set(await DB.allKeys(store));

@@ -77,6 +77,9 @@ function ensureStateDefaults() {
   if (typeof S.set.biometricEnabled !== 'boolean') S.set.biometricEnabled = false;
   if (typeof S.set.screenProtection !== 'boolean') S.set.screenProtection = true;
   if (typeof S.set.encryptBackup !== 'boolean') S.set.encryptBackup = false;
+  if (typeof S.set.autoBackup !== 'boolean') S.set.autoBackup = false;
+  if (typeof S.set.autoBackupFrequency !== 'string') S.set.autoBackupFrequency = 'daily';
+  if (typeof S.set.lastAutoBackupAt !== 'number') S.set.lastAutoBackupAt = 0;
 }
 
 function migrateLegacyState(loaded) {

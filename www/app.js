@@ -57,6 +57,7 @@ async function load() {
   checkNotifListenerPermission();
   fetchCapturedNotifications();
   checkGithubUpdate(true);
+  checkAutoBackup();
 }
 
 function init() {
