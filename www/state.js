@@ -17,6 +17,9 @@ let S = {
   inc: [],
   detected: [],
   transfers: [],
+  archivedTx: [],
+  archivedInc: [],
+  archivedTransfers: [],
   wallets: DEFAULT_WALLETS.map((n) => ({ name: n, start: 0 })),
   recurring: [],
   goals: [],
@@ -32,6 +35,8 @@ let S = {
     autoSave: false,
     githubRepo: 'Exsors-Code/catat-uang-apk',
     lastBackupAt: null,
+    archiveAfterMonths: 12,
+    showArchived: false,
     pinHash: '',
     pinSalt: '',
     pinAlgo: 'pbkdf2',
@@ -62,6 +67,9 @@ function ensureStateDefaults() {
   if (!Array.isArray(S.inc)) S.inc = [];
   if (!Array.isArray(S.detected)) S.detected = [];
   if (!Array.isArray(S.transfers)) S.transfers = [];
+  if (!Array.isArray(S.archivedTx)) S.archivedTx = [];
+  if (!Array.isArray(S.archivedInc)) S.archivedInc = [];
+  if (!Array.isArray(S.archivedTransfers)) S.archivedTransfers = [];
   if (!Array.isArray(S.recurring)) S.recurring = [];
   if (!Array.isArray(S.goals)) S.goals = [];
   if (!Array.isArray(S.customCats)) S.customCats = [];
@@ -80,6 +88,8 @@ function ensureStateDefaults() {
   if (typeof S.set.autoBackup !== 'boolean') S.set.autoBackup = false;
   if (typeof S.set.autoBackupFrequency !== 'string') S.set.autoBackupFrequency = 'daily';
   if (typeof S.set.lastAutoBackupAt !== 'number') S.set.lastAutoBackupAt = 0;
+  if (typeof S.set.archiveAfterMonths !== 'number') S.set.archiveAfterMonths = 12;
+  if (typeof S.set.showArchived !== 'boolean') S.set.showArchived = false;
 }
 
 function migrateLegacyState(loaded) {

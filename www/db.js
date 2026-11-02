@@ -145,6 +145,9 @@ async function loadState() {
     if (Array.isArray(meta.recurring)) S.recurring = meta.recurring;
     if (Array.isArray(meta.customCats)) S.customCats = meta.customCats;
     if (meta.catLearn && typeof meta.catLearn === 'object') S.catLearn = meta.catLearn;
+    if (Array.isArray(meta.archivedTx)) S.archivedTx = meta.archivedTx;
+    if (Array.isArray(meta.archivedInc)) S.archivedInc = meta.archivedInc;
+    if (Array.isArray(meta.archivedTransfers)) S.archivedTransfers = meta.archivedTransfers;
     if (typeof meta.version === 'string') { /* version tracked */ }
     if (meta.lastBackupAt) S.set.lastBackupAt = meta.lastBackupAt;
   }
@@ -164,6 +167,9 @@ async function saveState() {
     recurring: S.recurring,
     customCats: S.customCats,
     catLearn: S.catLearn,
+    archivedTx: S.archivedTx,
+    archivedInc: S.archivedInc,
+    archivedTransfers: S.archivedTransfers,
     version: APP_VERSION,
     lastBackupAt: S.set.lastBackupAt,
   };

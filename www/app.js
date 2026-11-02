@@ -58,6 +58,7 @@ async function load() {
   fetchCapturedNotifications();
   checkGithubUpdate(true);
   checkAutoBackup();
+  archiveOldTransactions();
 }
 
 function init() {

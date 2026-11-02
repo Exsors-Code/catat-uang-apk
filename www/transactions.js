@@ -128,6 +128,26 @@ async function removeTransfer(id) {
   if (typeof showUndo === 'function') showUndo('transfer', item);
 }
 
+function monthKey(d) { return String(d || '').slice(0, 7); }
+function cutoffDate(months) {
+  const d = new Date();
+  d.setMonth(d.getMonth() - months);
+  return d.toISOString().slice(0, 7);
+}
+function archiveOldTransactions() {
+  const months = +S.set.archiveAfterMonths || 12;
+  const cutoff = cutoffDate(months);
+  const movedTx = [], movedInc = [], movedTr = [];
+  S.tx = (S.tx || []).filter((t) => { if (monthKey(t.d) < cutoff) { movedTx.push(t); return false; } return true; });
+  S.inc = (S.inc || []).filter((i) => { if (monthKey(i.d) < cutoff) { movedInc.push(i); return false; } return true; });
+  S.transfers = (S.transfers || []).filter((tr) => { if (monthKey(tr.d) < cutoff) { movedTr.push(tr); return false; } return true; });
+  S.archivedTx = [...(S.archivedTx || []), ...movedTx];
+  S.archivedInc = [...(S.archivedInc || []), ...movedInc];
+  S.archivedTransfers = [...(S.archivedTransfers || []), ...movedTr];
+  if (movedTx.length || movedInc.length || movedTr.length) save();
+  return { tx: movedTx.length, inc: movedInc.length, transfers: movedTr.length };
+}
+
 function editTx(id, fields) {
   const t = (S.tx || []).find((x) => x.id === id);
   if (!t) return false;
