@@ -1,5 +1,34 @@
 # CHANGELOG - CatatUang Android
 
+## v1.5.0 (2026-11-02)
+
+### Perbaikan Bug
+- Regex parsing notifikasi bank (nominal tidak tertangkap karena escape spasi yang ganda)
+- Transaksi berulang tidak lagi memicu penyimpanan berulang saat tidak ada item baru
+
+### Deteksi Notifikasi
+- Batasi paket aplikasi ke bank/e-wallet terdaftar (GoPay, OVO, DANA, ShopeePay, BCA, SeaBank, Bank Jago, Mandiri, BRI, BNI, Jenius, dll.)
+- Abaikan notifikasi saldo/sisa saldo
+- Gaji terdeteksi sebagai pemasukan; top-up bukan pemasukan
+- Cek duplikasi terhadap transaksi/pemasukan yang sudah disimpan
+
+### Data & Cadangan
+- Restore/impor wajib konfirmasi sebelum menimpa data
+- Tampilkan waktu cadangan terakhir di pengaturan
+- Opsi cadangan terenkripsi (AES-GCM + PBKDF2, sandi tidak disimpan)
+- Nonaktifkan Android auto backup (AndroidManifest `allowBackup="false"`)
+- Pisah IndexedDB per store: meta, tx, inc, detected, transfers, goals, photos + migrasi legacy
+
+### Transaksi & Kategori
+- Edit pemasukan dan pengeluaran (nominal, tanggal, dompet, catatan)
+- Undo setelah hapus transaksi/pemasukan/transfer/deteksi notifikasi
+- Kategori kustom + pembelajaran dari koreksi (catLearn)
+- Deteksi notifikasi cek duplikasi vs tx/inc tersimpan
+
+### UX
+- Onboarding pertama kali: izin notifikasi Android 13+, panduan pengecualian baterai
+- PIN: PBKDF2-SHA256 200.000 iterasi, salt, rate limit 5 percobaan/15 menit, biometrik, perlindungan layar
+
 ## v1.4.0 (2026-10-30)
 
 ### Keamanan PIN

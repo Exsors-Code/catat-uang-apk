@@ -38,7 +38,7 @@ async function safeInit() {
 function save() {
   try {
     ensureStateDefaults();
-    DB.put('state', S);
+    saveState();
   } catch (e) {
     ErrorLog.add('save failed', e, true);
     showError('Gagal menyimpan data');
@@ -47,11 +47,7 @@ function save() {
 
 async function load() {
   try {
-    const st = await DB.get('state');
-    if (st) {
-      S = migrateLegacyState(st);
-      ensureStateDefaults();
-    }
+    await loadState();
   } catch (e) {
     ErrorLog.add('load failed', e, true);
   }

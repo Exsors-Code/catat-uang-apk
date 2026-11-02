@@ -74,6 +74,7 @@ function ensureStateDefaults() {
   if (typeof S.set.githubRepo !== 'string' || !S.set.githubRepo.trim()) S.set.githubRepo = 'Exsors-Code/catat-uang-apk';
   if (typeof S.set.biometricEnabled !== 'boolean') S.set.biometricEnabled = false;
   if (typeof S.set.screenProtection !== 'boolean') S.set.screenProtection = true;
+  if (typeof S.set.encryptBackup !== 'boolean') S.set.encryptBackup = false;
 }
 
 function migrateLegacyState(loaded) {

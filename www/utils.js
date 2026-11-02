@@ -98,6 +98,46 @@ function showError(msg) {
   showToast(msg, 'error');
 }
 
+// Cadangan terenkripsi (AES-GCM + kunci turunan dari sandi via PBKDF2)
+// Sandi tidak disimpan; diminta saat ekspim/impor.
+function h2b(hex) {
+  const h = String(hex || '').replace(/[^0-9a-f]/gi, '');
+  const arr = new Uint8Array(Math.ceil(h.length / 2));
+  for (let i = 0; i < arr.length; i++) arr[i] = parseInt(h.substr(i * 2, 2), 16) || 0;
+  return arr;
+}
+function b2h(buf) {
+  const arr = buf instanceof ArrayBuffer ? new Uint8Array(buf) : new Uint8Array(buf);
+  let s = '';
+  for (let i = 0; i < arr.length; i++) s += arr[i].toString(16).padStart(2, '0');
+  return s;
+}
+async function backupEncrypt(plainText, password) {
+  const enc = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const km = await crypto.subtle.importKey('raw', enc.encode(password), { name: 'PBKDF2' }, false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, true, ['encrypt']);
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plainText));
+  return JSON.stringify({ v: 1, algo: 'AES-GCM', salt: b2h(salt), iv: b2h(iv), ct: b2h(ct) });
+}
+async function backupDecrypt(cipherJson, password) {
+  const j = JSON.parse(cipherJson);
+  const enc = new TextEncoder();
+  const salt = h2b(j.salt);
+  const iv = h2b(j.iv);
+  const km = await crypto.subtle.importKey('raw', enc.encode(password), { name: 'PBKDF2' }, false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 200000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, true, ['decrypt']);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, h2b(j.ct));
+  return new TextDecoder().decode(pt);
+}
+function isEncryptedBackup(text) {
+  try {
+    const j = JSON.parse(text);
+    return j && j.v === 1 && j.salt && j.iv && j.ct;
+  } catch (e) { return false; }
+}
+
 window.addEventListener('error', (ev) => {
   try {
     ErrorLog.add('Global error:', ev.error || new Error(ev.message), true);

@@ -1,4 +1,4 @@
-# CatatUang untuk Android (v1.4.0)
+# CatatUang untuk Android (v1.5.0)
 
 Aplikasi pencatat keuangan Android mandiri berbasis Capacitor. **100% Offline, privat, dan tanpa pihak ketiga**. Semua data keuangan dan model OCR tersimpan aman di perangkatmu.
 

@@ -32,12 +32,27 @@ function catMap() {
 }
 
 function predictCat(text) {
+  const t = String(text || '').toLowerCase();
+  // Pembelajaran dari koreksi pengguna: cocokkan kata kunci yang sudah dipakai sebelum
+  const learn = S.catLearn || {};
+  for (const key of Object.keys(learn)) {
+    if (key && t.includes(key)) return learn[key];
+  }
   const m = catMap();
   for (const k of Object.keys(m)) {
     if (k === 'Lainnya') continue;
     if (m[k].test(text)) return k;
   }
   return 'Lainnya';
+}
+
+function learnCat(text, cat) {
+  if (!text || !cat || cat === 'Lainnya') return;
+  const key = String(text).toLowerCase().trim();
+  if (!key) return;
+  S.catLearn = S.catLearn || {};
+  S.catLearn[key] = cat;
+  save();
 }
 
 function monthOut(m) {
@@ -87,6 +102,7 @@ function removeTx(id) {
   pushUndo('tx', item);
   save();
   render();
+  if (typeof showUndo === 'function') showUndo('tx', item);
 }
 
 function removeInc(id) {
@@ -96,6 +112,7 @@ function removeInc(id) {
   pushUndo('inc', item);
   save();
   render();
+  if (typeof showUndo === 'function') showUndo('inc', item);
 }
 
 function removeTransfer(id) {
@@ -105,6 +122,41 @@ function removeTransfer(id) {
   pushUndo('transfer', item);
   save();
   render();
+  if (typeof showUndo === 'function') showUndo('transfer', item);
+}
+
+function editTx(id, fields) {
+  const t = (S.tx || []).find((x) => x.id === id);
+  if (!t) return false;
+  Object.assign(t, fields);
+  if (fields.amt !== undefined) t.amt = +t.amt || 0;
+  if (fields.d) t.d = fields.d;
+  save();
+  render();
+  return true;
+}
+
+function editInc(id, fields) {
+  const i = (S.inc || []).find((x) => x.id === id);
+  if (!i) return false;
+  Object.assign(i, fields);
+  if (fields.amt !== undefined) i.amt = +i.amt || 0;
+  if (fields.d) i.d = fields.d;
+  if (fields.d && !i.m) i.m = fields.d.slice(0, 7);
+  save();
+  render();
+  return true;
+}
+
+function editTransfer(id, fields) {
+  const t = (S.transfers || []).find((x) => x.id === id);
+  if (!t) return false;
+  Object.assign(t, fields);
+  if (fields.amt !== undefined) t.amt = +t.amt || 0;
+  if (fields.d) t.d = fields.d;
+  save();
+  render();
+  return true;
 }
 
 function applyRecurring() {
@@ -131,7 +183,6 @@ function applyRecurring() {
       }
     }
     r.lastApplied = m;
-    changed = true;
   });
   if (changed) save();
 }
