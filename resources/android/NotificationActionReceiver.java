@@ -3,7 +3,6 @@ package app.catatuang.mobile;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import com.getcapacitor.JSObject;
 
 /**
  * Menerima aksi tombol dari notifikasi konfirmasi deteksi (Konfirmasi / Abaikan)
@@ -14,7 +13,7 @@ import com.getcapacitor.JSObject;
 public class NotificationActionReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent == null || intent.getAction() == null || NotificationPlugin.instance == null) {
+        if (intent == null || intent.getAction() == null) {
             return;
         }
         String action = intent.getAction();
@@ -29,17 +28,10 @@ public class NotificationActionReceiver extends BroadcastReceiver {
             return;
         }
 
-        try {
-            JSObject ret = new JSObject();
-            ret.put("id", id);
-            if (NotificationPlugin.ACTION_NOTIF_CONFIRM.equals(action)) {
-                ret.put("action", "confirm");
-            } else if (NotificationPlugin.ACTION_NOTIF_DISMISS.equals(action)) {
-                ret.put("action", "dismiss");
-            } else {
-                return;
-            }
-            NotificationPlugin.instance.notifyListeners("notificationReceived", ret);
-        } catch (Exception ignored) {}
+        if (NotificationPlugin.ACTION_NOTIF_CONFIRM.equals(action)) {
+            NotificationPlugin.dispatchAction(context, id, "confirm");
+        } else if (NotificationPlugin.ACTION_NOTIF_DISMISS.equals(action)) {
+            NotificationPlugin.dispatchAction(context, id, "dismiss");
+        }
     }
 }

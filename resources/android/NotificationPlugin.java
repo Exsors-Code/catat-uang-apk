@@ -322,4 +322,22 @@ public class NotificationPlugin extends Plugin {
             call.reject("Gagal menambahkan widget: " + e.getMessage());
         }
     }
+
+    /**
+     * Dipanggil NotificationActionReceiver untuk mengirim aksi notifikasi
+     * (konfirmasi/dismiss) ke JavaScript melalui event notificationReceived.
+     * Metode ini public karena notifyListeners() adalah protected di Plugin,
+     * sehingga tidak dapat dipanggil langsung dari luar kelas turunan Plugin.
+     */
+    public static void dispatchAction(Context context, String id, String action) {
+        if (instance == null || id == null || action == null) {
+            return;
+        }
+        try {
+            JSObject ret = new JSObject();
+            ret.put("id", id);
+            ret.put("action", action);
+            instance.notifyListeners("notificationReceived", ret);
+        } catch (Exception ignored) {}
+    }
 }
