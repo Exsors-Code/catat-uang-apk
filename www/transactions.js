@@ -62,6 +62,18 @@ function monthOut(m) {
 function monthIn(m) {
   return (S.inc || []).filter((i) => (i.m === m || (i.d || '').slice(0, 7) === m)).reduce((a, i) => a + (+i.amt || 0), 0);
 }
+function checkBudgetWarning() {
+  const limit = +S.set.budget || 0;
+  if (!limit) return;
+  const month = today().slice(0, 7);
+  const spent = monthOut(month);
+  const pct = Math.round((spent / limit) * 100);
+  const lastWarned = S.set.lastBudgetWarningMonth || '';
+  if (lastWarned === month) return;
+  if (spent >= limit) { S.set.lastBudgetWarningMonth = month; save(); showToast(`Anggaran tercapai 100% (${rp(spent)} / ${rp(limit)})`, 'error'); }
+  else if (pct >= 90) { S.set.lastBudgetWarningMonth = month; save(); showToast(`Anggaran hampir penuh 90% (${rp(spent)} / ${rp(limit)})`, 'warn'); }
+  else if (pct >= 80) { S.set.lastBudgetWarningMonth = month; save(); showToast(`Anggaran mencapai 80% (${rp(spent)} / ${rp(limit)})`, 'warn'); }
+}
 
 function sumDay(k) {
   let total = 0;

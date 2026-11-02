@@ -39,6 +39,7 @@ function save() {
   try {
     ensureStateDefaults();
     saveState();
+    checkBudgetWarning();
   } catch (e) {
     ErrorLog.add('save failed', e, true);
     showError('Gagal menyimpan data');
