@@ -15,6 +15,8 @@ async function safeInit() {
     if (typeof Capacitor !== 'undefined') {
       try {
         Capacitor.Plugins?.CatatUangNotification?.addListener('notificationReceived', (data) => {
+          if (data.action === 'confirm') return confirmDetectedById(data.id);
+          if (data.action === 'dismiss') return dismissDetectedById(data.id);
           processCapturedNotification(data);
         });
       } catch (e) {

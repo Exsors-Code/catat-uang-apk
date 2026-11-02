@@ -124,3 +124,8 @@ function clearDetected() {
   save();
   render();
 }
+function findDetectedIndex(id) { return (S.detected || []).findIndex((n) => n.id === id); }
+function confirmDetectedById(id) { const i = findDetectedIndex(id); if (i < 0) return; confirmDetected(i); }
+function dismissDetectedById(id) { const i = findDetectedIndex(id); if (i < 0) return; dismissDetected(i); }
+window.confirmDetectedById = confirmDetectedById;
+window.dismissDetectedById = dismissDetectedById;
