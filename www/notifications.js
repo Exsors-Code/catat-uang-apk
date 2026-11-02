@@ -103,6 +103,13 @@ function processCapturedNotification(data) {
   }
   save();
   render();
+  // P2-3 native: bila simpan otomatis MATI, tampilkan notifikasi Android
+  // dengan tombol Konfirmasi / Abaikan agar transaksi bisa dikonfirmasi
+  // tanpa membuka aplikasi. Aksi dilewatkan NotificationActionReceiver ->
+  // event notificationReceived (action confirm/dismiss) yang ditangani app.js.
+  if (!S.set.autoSave && NATIVE) {
+    showDetectedConfirmation(item).catch(() => {});
+  }
 }
 
 function confirmDetected(idx) {
@@ -129,3 +136,43 @@ function confirmDetectedById(id) { const i = findDetectedIndex(id); if (i < 0) r
 function dismissDetectedById(id) { const i = findDetectedIndex(id); if (i < 0) return; dismissDetected(i); }
 window.confirmDetectedById = confirmDetectedById;
 window.dismissDetectedById = dismissDetectedById;
+
+// --- Wrapper fitur native CatatUangNotification (hanya berjalan pada Android) ---
+async function nativeCall(method, args = {}) {
+  const plugin = window.Capacitor?.Plugins?.CatatUangNotification;
+  if (!plugin) throw new Error('Fitur native hanya tersedia pada aplikasi Android');
+  return await plugin[method](args);
+}
+
+async function isBatteryExempted() {
+  try { const r = await nativeCall('isBatteryExempted', {}); return !!r.exempted; } catch (e) { return false; }
+}
+
+async function requestBatteryExemption() {
+  await nativeCall('requestBatteryExemption', {});
+  showToast('Pengaturan pengecualian baterai dibuka. Pilih CatatUang lalu nyalakan.', 'info');
+}
+
+async function isShortcutPinned() {
+  try { const r = await nativeCall('isShortcutPinned', {}); return !!r.pinned; } catch (e) { return false; }
+}
+
+async function pinShortcut() {
+  await nativeCall('pinShortcut', {});
+  showToast('Pintasan Tambah Transaksi dipasang. Periksa layar utama.', 'success');
+}
+
+async function addWidget() {
+  const r = await nativeCall('addWidget', {});
+  if (r && r.added) {
+    showToast('Widget CatatUang dipasang di layar utama.', 'success');
+  } else {
+    showToast('Pasang widget CatatUang secara manual: tekan lama layar utama → Widget → CatatUang.', 'info');
+  }
+}
+
+async function showDetectedConfirmation(n) {
+  await nativeCall('postDetectedConfirmation', {
+    pkg: n.pkg, id: n.id, title: n.title, amt: String(n.amt || '')
+  });
+}

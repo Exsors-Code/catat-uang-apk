@@ -28,7 +28,8 @@ const permissions = [
   'android.permission.RECEIVE_BOOT_COMPLETED',
   'android.permission.INTERNET',
   'android.permission.VIBRATE',
-  'android.permission.USE_BIOMETRIC'
+  'android.permission.USE_BIOMETRIC',
+  'android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS'
 ];
 
 const permsSnippet = permissions
@@ -49,6 +50,11 @@ if (xml.includes('android:allowBackup="true"')) {
 if (!xml.includes('NotificationService')) {
   const serviceSnippet = '\n        <service\n            android:name=".NotificationService"\n            android:label="CatatUang Notification Listener"\n            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"\n            android:exported="true">\n            <intent-filter>\n                <action android:name="android.service.notification.NotificationListenerService" />\n            </intent-filter>\n        </service>\n    </application>';
   xml = xml.replace('</application>', serviceSnippet);
+}
+
+if (!xml.includes('NotificationActionReceiver')) {
+  const receiversSnippet = '\n        <receiver\n            android:name=".NotificationActionReceiver"\n            android:exported="false">\n            <intent-filter>\n                <action android:name="app.catatuang.mobile.NOTIF_CONFIRM" />\n                <action android:name="app.catatuang.mobile.NOTIF_DISMISS" />\n                <action android:name="app.catatuang.mobile.SHORTCUT_CALLBACK" />\n            </intent-filter>\n        </receiver>\n        <receiver\n            android:name=".CatatUangAppWidget"\n            android:exported="true">\n            <intent-filter>\n                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />\n            </intent-filter>\n            <meta-data\n                android:name="android.appwidget.provider"\n                android:resource="@xml/catat_uang_widget_info" />\n        </receiver>\n    </application>';
+  xml = xml.replace('</application>', receiversSnippet);
 }
 
 fs.writeFileSync(manifestPath, xml, 'utf8');
