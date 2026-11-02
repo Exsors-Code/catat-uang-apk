@@ -95,7 +95,8 @@ function addTransfer(from, to, amt, note, d) {
   render();
 }
 
-function removeTx(id) {
+async function removeTx(id) {
+  if (!(await confirmWithBiometric())) return;
   const i = (S.tx || []).findIndex((t) => t.id === id);
   if (i < 0) return;
   const item = S.tx.splice(i, 1)[0];
@@ -105,7 +106,8 @@ function removeTx(id) {
   if (typeof showUndo === 'function') showUndo('tx', item);
 }
 
-function removeInc(id) {
+async function removeInc(id) {
+  if (!(await confirmWithBiometric())) return;
   const i = (S.inc || []).findIndex((t) => t.id === id);
   if (i < 0) return;
   const item = S.inc.splice(i, 1)[0];
@@ -115,7 +117,8 @@ function removeInc(id) {
   if (typeof showUndo === 'function') showUndo('inc', item);
 }
 
-function removeTransfer(id) {
+async function removeTransfer(id) {
+  if (!(await confirmWithBiometric())) return;
   const i = (S.transfers || []).findIndex((t) => t.id === id);
   if (i < 0) return;
   const item = S.transfers.splice(i, 1)[0];
