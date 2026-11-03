@@ -61,6 +61,7 @@ let undoItem = null;
 let undoTimer = null;
 let filterQ = { q: '', cat: '', wallet: '' };
 let incomeDraft = null;
+let settingsSubTab = 'security';
 
 function ensureStateDefaults() {
   if (!Array.isArray(S.tx)) S.tx = [];
